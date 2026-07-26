@@ -1,0 +1,5 @@
+# Netlify / Cloudflare Pages — clean URLs for the Work + Courses sections.
+/work           /work.html      200
+/work/*         /work.html      200
+/courses        /courses.html   200
+/courses/*      /courses.html   200

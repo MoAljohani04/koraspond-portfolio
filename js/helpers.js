@@ -1,0 +1,119 @@
+// Small shared helpers used across the public site and the admin dashboard.
+
+/** Escape untrusted text before inserting into innerHTML. Prevents XSS. */
+export function esc(value) {
+  if (value === null || value === undefined) return "";
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/** Escape a value for safe use inside an HTML attribute. */
+export function escAttr(value) {
+  return esc(value);
+}
+
+/** Only allow safe-scheme links; otherwise return "#". */
+export function safeUrl(url) {
+  if (!url) return "#";
+  const v = String(url).trim();
+  if (
+    v.startsWith("#") ||
+    v.startsWith("/") ||
+    v.startsWith("mailto:") ||
+    /^https?:\/\//i.test(v)
+  ) {
+    return v;
+  }
+  return "#";
+}
+
+export function initials(name, fallback = "AA") {
+  if (!name) return fallback;
+  return (
+    name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || fallback
+  );
+}
+
+export function formatDate(date) {
+  if (!date) return "";
+  try {
+    return new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return String(date);
+  }
+}
+
+export function formatBytes(bytes) {
+  if (!bytes) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}
+
+export function slugify(text) {
+  return String(text)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// ── Inline SVG icons (name → path markup) ───────────────────────────────────
+const STROKE_ICONS = {
+  document: '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.6a1 1 0 01.7.3l5.4 5.4a1 1 0 01.3.7V19a2 2 0 01-2 2z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.9 5.7 3.9 9S14.5 18.4 12 21m0-18C9.5 5.6 8.1 8.7 8.1 12s1.4 6.4 3.9 9"/>',
+  monitor: '<path d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>',
+  wordpress: '<circle cx="12" cy="12" r="9"/><path d="M4.5 9h5m-3 0l3.4 9M14.5 9H19m-6.9 0L15 18m-3-7.5L9.6 18m5.4-9l-2.4 7.5"/>',
+  figma: '<circle cx="14.5" cy="12" r="2.5"/><path d="M9.5 4.5H12v5H9.5a2.5 2.5 0 010-5zm0 5H12v5H9.5a2.5 2.5 0 010-5zm0 5H12v2.5a2.5 2.5 0 11-2.5-2.5zm2.5-10h2.5a2.5 2.5 0 010 5H12v-5z"/>',
+  brain: '<path d="M9.5 3A2.5 2.5 0 007 5.5v.55A3.5 3.5 0 004.5 9.5c0 .64.17 1.23.47 1.75A3.5 3.5 0 004.5 17a3.5 3.5 0 003.5 3.5c.54 0 1.05-.12 1.5-.34A2.5 2.5 0 0012 21a2.5 2.5 0 002.5-2.5v-13A2.5 2.5 0 0012 3h-2.5z"/>',
+  chat: '<path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>',
+  pulse: '<path d="M3 12h4l2-7 4 14 2-7h6"/>',
+  sparkles: '<path d="M5 3v4M3 5h4m3 14v2m-1-1h2m6-16l.9 2.7L20.6 8l-2.7.9L17 11.6l-.9-2.7L13.4 8l2.7-1.3L17 4z"/>',
+  download: '<path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v11m0 0l-4-4m4 4l4-4"/>',
+  mail: '<path d="M3 8l7.9 5.3a2 2 0 002.2 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>',
+  calendar: '<path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>',
+  arrow: '<path d="M3 12h18m0 0l-7-7m7 7l-7 7"/>',
+  external: '<path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>',
+  heart: '<path d="M4.3 12.5a5 5 0 017.1-7.1l.6.6.6-.6a5 5 0 117.1 7.1L12 20.2l-7.7-7.7z"/>',
+};
+
+const FILL_ICONS = {
+  linkedin: '<path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 013.37-1.85c3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z"/>',
+  github: '<path d="M12 2a10 10 0 00-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.58 9.58 0 015 0c1.91-1.3 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85V21c0 .27.18.58.69.48A10 10 0 0012 2z"/>',
+};
+
+export const ICON_CHOICES = [
+  "document", "globe", "monitor", "wordpress", "figma", "brain", "chat", "pulse", "sparkles",
+];
+
+/** Returns an <svg> string for the named icon. */
+export function icon(name, cls = "") {
+  if (FILL_ICONS[name]) {
+    return `<svg viewBox="0 0 24 24" fill="currentColor" class="${cls}" aria-hidden="true">${FILL_ICONS[name]}</svg>`;
+  }
+  const body = STROKE_ICONS[name] || STROKE_ICONS.sparkles;
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${body}</svg>`;
+}
+
+export function socialIconName(platform) {
+  if (platform === "linkedin") return "linkedin";
+  if (platform === "github") return "github";
+  return "mail";
+}

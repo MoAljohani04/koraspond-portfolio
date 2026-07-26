@@ -1,0 +1,24 @@
+# Render Blueprint — deploys this folder as a free Static Site.
+# In Render you can either use this file (New → Blueprint) or configure the same
+# settings by hand in the dashboard (see README / the deploy steps).
+services:
+  - type: web
+    name: koraspond-portfolio
+    runtime: static
+    # No build step — it's plain HTML/CSS/JS. Publish the whole folder.
+    buildCommand: ""
+    staticPublishPath: .
+    # Clean URLs for the My Work + Courses single-page sections.
+    routes:
+      - type: rewrite
+        source: /work
+        destination: /work.html
+      - type: rewrite
+        source: /work/*
+        destination: /work.html
+      - type: rewrite
+        source: /courses
+        destination: /courses.html
+      - type: rewrite
+        source: /courses/*
+        destination: /courses.html

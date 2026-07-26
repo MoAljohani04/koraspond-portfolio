@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Portfolio</title>
+    <meta name="description" content="Portfolio" id="meta-description" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Portfolio" id="og-title" />
+    <meta property="og:description" content="" id="og-description" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- Draft-preview banner (shown only to admin via ?preview=1) -->
+    <div id="preview-bar"></div>
+
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-inner">
+        <a class="brand" href="#" aria-label="Home">
+          <span class="brand-badge" id="brand-badge">AA</span>
+          <span>
+            <span class="brand-name" id="brand-name">&nbsp;</span><br />
+            <span class="brand-role" id="brand-role"></span>
+          </span>
+        </a>
+        <nav aria-label="Main">
+          <ul class="nav-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#experience">Experience</a></li>
+            <li><a href="work.html">My Work</a></li>
+            <li><a href="courses.html">Courses</a></li>
+            <li><a href="#skills">Skills</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <a class="nav-dash" id="nav-dashboard" href="admin.html" hidden>Dashboard</a>
+          <a class="btn btn-primary" id="nav-cv" href="#" target="_blank" rel="noopener" hidden>
+            Download CV
+          </a>
+          <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="nav-mobile" id="nav-mobile">
+        <ul>
+          <li><a href="#about">About</a></li>
+          <li><a href="#experience">Experience</a></li>
+          <li><a href="work.html">My Work</a></li>
+          <li><a href="courses.html">Courses</a></li>
+          <li><a href="#skills">Skills</a></li>
+          <li><a href="#certificates">Certificates</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main>
+      <!-- Hero + experience card -->
+      <section class="hero" id="about">
+        <img class="hero-bg" id="hero-bg" alt="" hidden />
+        <div class="hero-grid">
+          <div>
+            <div class="eyebrow-row">
+              <span class="eyebrow" id="hero-eyebrow">PORTFOLIO</span>
+              <span id="hero-edit"></span>
+            </div>
+            <h1 id="hero-headline"></h1>
+            <p class="hero-desc" id="hero-desc"></p>
+            <div class="hero-actions" id="hero-actions"></div>
+          </div>
+          <div id="experience"></div>
+        </div>
+      </section>
+
+      <!-- What I worked on -->
+      <section class="section section-light" id="worked-on" hidden>
+        <div class="container">
+          <div class="section-head">
+            <h2>What I Worked On <span id="worked-edit"></span></h2>
+            <div class="section-rule"></div>
+          </div>
+          <div class="cards-grid" id="worked-grid"></div>
+        </div>
+      </section>
+
+      <!-- Featured projects -->
+      <section class="section section-dark" id="projects" hidden>
+        <div class="container">
+          <div class="section-head">
+            <h2>Featured Projects <span id="projects-edit"></span></h2>
+          </div>
+          <div class="rail-wrap">
+            <button class="rail-btn prev" id="rail-prev" aria-label="Previous">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <button class="rail-btn next" id="rail-next" aria-label="Next">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <div class="rail" id="projects-rail"></div>
+          </div>
+          <div class="rail-dots" id="projects-dots"></div>
+        </div>
+      </section>
+
+      <!-- My Work categories preview -->
+      <section class="section section-light" id="work-preview" hidden>
+        <div class="container">
+          <div class="section-head">
+            <h2>My Work <span id="work-preview-edit"></span></h2>
+            <div class="section-rule"></div>
+          </div>
+          <div class="wc-grid" id="work-cats-grid"></div>
+          <div class="home-cta">
+            <a class="btn btn-primary" href="work.html">Explore all work
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18m0 0l-7-7m7 7l-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Skills + certificates -->
+      <section class="section section-muted">
+        <div class="container two-col">
+          <div id="skills">
+            <div class="col-head">
+              <h2>Tools &amp; Technologies</h2>
+              <span id="skills-edit"></span>
+            </div>
+            <div class="skills-grid" id="skills-grid"></div>
+          </div>
+          <div id="certificates">
+            <div class="col-head">
+              <h2>Learning &amp; Certificates</h2>
+              <span id="certs-edit"></span>
+            </div>
+            <div class="cert-list" id="certs-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Courses preview -->
+      <section class="section section-dark" id="courses-preview" hidden>
+        <div class="container">
+          <div class="section-head">
+            <h2>Courses <span id="courses-preview-edit"></span></h2>
+            <div class="section-rule"></div>
+          </div>
+          <div class="course-grid" id="courses-preview-grid"></div>
+          <div class="home-cta">
+            <a class="btn btn-primary" href="courses.html">View All Courses
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18m0 0l-7-7m7 7l-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Contact -->
+    <footer class="contact" id="contact">
+      <div class="contact-inner">
+        <h2 id="contact-heading">&nbsp; <span id="contact-edit"></span></h2>
+        <p class="contact-sub" id="contact-desc"></p>
+
+        <form id="contact-form" novalidate>
+          <div class="honeypot" aria-hidden="true">
+            <label for="cf-website">Website</label>
+            <input type="text" id="cf-website" name="website" tabindex="-1" autocomplete="off" />
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label for="cf-name">Name</label>
+              <input id="cf-name" name="name" type="text" required maxlength="120" placeholder="Your name" />
+            </div>
+            <div class="field">
+              <label for="cf-email">Email</label>
+              <input id="cf-email" name="email" type="email" required maxlength="200" placeholder="you@example.com" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="cf-subject">Subject <span class="optional">(optional)</span></label>
+            <input id="cf-subject" name="subject" type="text" maxlength="200" placeholder="What is this about?" />
+          </div>
+          <div class="field">
+            <label for="cf-message">Message</label>
+            <textarea id="cf-message" name="message" required minlength="10" maxlength="5000" rows="4" placeholder="Tell me about your project or question…"></textarea>
+          </div>
+          <div class="form-foot">
+            <button type="submit" class="btn btn-primary" id="cf-submit">Send Message</button>
+            <p class="form-msg" id="cf-feedback" role="status"></p>
+          </div>
+        </form>
+
+        <div class="contact-foot">
+          <p>
+            Thank you for visiting my portfolio!
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.3 12.5a5 5 0 017.1-7.1l.6.6.6-.6a5 5 0 117.1 7.1L12 20.2l-7.7-7.7z"/></svg>
+          </p>
+          <div class="socials" id="socials"></div>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/site.js"></script>
+  </body>
+</html>

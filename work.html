@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Work · Portfolio</title>
+    <meta name="description" content="Explore my projects by category — design, development, branding and more." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div id="preview-bar"></div>
+
+    <!-- Navbar (shared structure with index.html) -->
+    <header class="navbar">
+      <div class="nav-inner">
+        <a class="brand" href="index.html" aria-label="Home">
+          <span class="brand-badge" id="brand-badge">AA</span>
+          <span>
+            <span class="brand-name" id="brand-name">&nbsp;</span><br />
+            <span class="brand-role" id="brand-role"></span>
+          </span>
+        </a>
+        <nav aria-label="Main">
+          <ul class="nav-links">
+            <li><a href="index.html#about">About</a></li>
+            <li><a href="index.html#experience">Experience</a></li>
+            <li><a href="work.html" data-nav-active="work">My Work</a></li>
+            <li><a href="courses.html" data-nav-active="courses">Courses</a></li>
+            <li><a href="index.html#skills">Skills</a></li>
+            <li><a href="index.html#contact">Contact</a></li>
+          </ul>
+        </nav>
+        <div class="nav-actions">
+          <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="nav-mobile" id="nav-mobile">
+        <ul>
+          <li><a href="index.html#about">About</a></li>
+          <li><a href="index.html#experience">Experience</a></li>
+          <li><a href="work.html">My Work</a></li>
+          <li><a href="courses.html">Courses</a></li>
+          <li><a href="index.html#skills">Skills</a></li>
+          <li><a href="index.html#contact">Contact</a></li>
+        </ul>
+      </div>
+    </header>
+
+    <main class="page">
+      <div class="container">
+        <div id="work-app" class="view-in"></div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="contact">
+      <div class="contact-inner">
+        <div class="contact-foot" style="margin-top:0;border-top:0">
+          <p>
+            Thank you for visiting my portfolio!
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.3 12.5a5 5 0 017.1-7.1l.6.6.6-.6a5 5 0 117.1 7.1L12 20.2l-7.7-7.7z"/></svg>
+          </p>
+          <div class="socials" id="socials"></div>
+        </div>
+      </div>
+    </footer>
+
+    <script type="module" src="js/work.js"></script>
+  </body>
+</html>

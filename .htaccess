@@ -1,0 +1,18 @@
+# Clean URLs for the "My Work" and "Courses" single-page sections.
+# Apache (XAMPP) serves work.html / courses.html for their sub-paths so that
+# links like /work/website-design/some-project resolve on a hard refresh.
+# Requires mod_rewrite (enabled by default in XAMPP) and AllowOverride All.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Never rewrite a request that maps to a real file or directory.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # /work and /work/<category>/<project>  ->  work.html
+  RewriteRule ^work(/.*)?$ work.html [L]
+
+  # /courses and /courses/<provider>/<course>  ->  courses.html
+  RewriteRule ^courses(/.*)?$ courses.html [L]
+</IfModule>
