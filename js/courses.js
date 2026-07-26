@@ -80,6 +80,15 @@ function transition(html) {
   host.classList.remove("view-in");
   void host.offsetWidth;
   host.classList.add("view-in");
+  // Safety net: a running CSS animation with fill:both overrides inline styles,
+  // so if the enter frames never composite (e.g. rendered in a background tab)
+  // the content stays stuck at opacity:0. Dropping the class reverts to the
+  // visible base state. animationend covers the normal case; the timeout /
+  // visibilitychange cover the stalled case.
+  const reveal = () => host.classList.remove("view-in");
+  host.addEventListener("animationend", reveal, { once: true });
+  setTimeout(reveal, 600);
+  document.addEventListener("visibilitychange", reveal, { once: true });
 }
 function breadcrumb(items) {
   return `<nav class="crumbs" aria-label="Breadcrumb">${items
