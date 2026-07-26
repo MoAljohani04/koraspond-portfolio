@@ -6,7 +6,7 @@ services:
     name: koraspond-portfolio
     runtime: static
     # No build step — it's plain HTML/CSS/JS. Publish the whole folder.
-    buildCommand: ""
+    buildCommand: echo "No build needed — static files"
     staticPublishPath: .
     # Clean URLs for the My Work + Courses single-page sections.
     routes:
