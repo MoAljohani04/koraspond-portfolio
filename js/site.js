@@ -2,7 +2,7 @@
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
-  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify,
+  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, techLogo,
 } from "./helpers.js";
 import { initContactForm } from "./contact.js";
 
@@ -147,33 +147,39 @@ function render(content, isAdmin) {
     if (isAdmin) $("worked-edit").innerHTML = editChip("admin.html#experience", false);
   }
 
-  // Featured projects
+  // Featured clients — a grid of logos, each linking to that client's project.
   const featured = projects.filter((p) => p.featured).sort((a, b) => a.featured_order - b.featured_order);
   const list = featured.length ? featured : projects;
   if (list.length) {
     $("projects").hidden = false;
-    $("projects-rail").innerHTML = list
+    const catSlugFor = (p) => {
+      const mapped = projectCatMap
+        .filter((m) => m.project_id === p.id)
+        .map((m) => projectCategories.find((c) => c.id === m.category_id))
+        .filter(Boolean);
+      const cat = mapped[0] || projectCategories.find((c) => c.id === p.category_id);
+      return cat ? cat.slug : "all";
+    };
+    $("clients-grid").innerHTML = list
       .map((p) => {
-        const thumb = p.cover_image
-          ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.title)}" />`
-          : `<span>${esc(p.title)}</span>`;
-        const title = p.project_url
-          ? `<a href="${safeUrl(p.project_url)}" target="_blank" rel="noopener">${esc(p.title)}</a>`
-          : esc(p.title);
-        const tags = (p.technologies || []).map((t) => `<span class="tag">${esc(t.name)}</span>`).join("");
+        const name = p.client_name || p.title;
+        const sub = p.client_name ? p.title : "";
+        const href = p.slug
+          ? `work.html?c=${encodeURIComponent(catSlugFor(p))}&p=${encodeURIComponent(p.slug)}`
+          : "work.html";
+        const logo = p.client_logo
+          ? `<img src="${escAttr(p.client_logo)}" alt="${escAttr(name)} logo" loading="lazy" />`
+          : `<span class="ph">${esc(name.toUpperCase())}</span>`;
         return `
-        <article class="proj-card">
-          <div class="proj-thumb">${thumb}</div>
-          <div class="proj-body">
-            <h3>${title}</h3>
-            <p>${esc(p.short_description)}</p>
-            <div class="proj-tags">${tags}</div>
-          </div>
-        </article>`;
+        <a class="client-tile" href="${href}" aria-label="View the project for ${escAttr(name)}">
+          <div class="client-logo">${logo}</div>
+          <div class="client-name">${esc(name)}</div>
+          ${sub ? `<div class="client-proj">${esc(sub)}</div>` : ""}
+          <span class="client-cta">View project ${icon("arrow")}</span>
+        </a>`;
       })
       .join("");
     if (isAdmin) $("projects-edit").innerHTML = editChip("admin.html#projects", true);
-    setupRail(Math.min(4, list.length));
   }
 
   // My Work categories preview
@@ -182,13 +188,15 @@ function render(content, isAdmin) {
   // Courses preview
   renderCoursesPreview(courses, isAdmin);
 
-  // Skills
+  // Skills — prefer an uploaded icon, else an auto brand logo, else initials.
   $("skills-grid").innerHTML = skills
     .map((s) => {
-      const badge = s.icon_url
-        ? `<img src="${escAttr(s.icon_url)}" alt="${escAttr(s.name)}" />`
-        : `<span class="skill-badge">${esc(s.name.slice(0, 2).toUpperCase())}</span>`;
-      return `<div class="skill-tile" title="${escAttr(s.name)}">${badge}<span class="label">${esc(s.name)}</span></div>`;
+      const logo = s.icon_url || techLogo(s.name);
+      const initials2 = s.name.slice(0, 2).toUpperCase();
+      const img = logo
+        ? `<img class="skill-logo" src="${escAttr(logo)}" alt="${escAttr(s.name)}" loading="lazy" onerror="this.closest('.skill-tile').classList.add('no-logo')" />`
+        : "";
+      return `<div class="skill-tile${logo ? " has-logo" : ""}" title="${escAttr(s.name)}">${img}<span class="skill-badge">${esc(initials2)}</span><span class="label">${esc(s.name)}</span></div>`;
     })
     .join("");
   if (isAdmin) $("skills-edit").innerHTML = editChip("admin.html#skills", false);
@@ -290,19 +298,6 @@ function renderCoursesPreview(courses, isAdmin) {
   if (isAdmin) $("courses-preview-edit").innerHTML = editChip("admin.html#courses", true);
 }
 
-function setupRail(dotCount) {
-  const rail = $("projects-rail");
-  const dots = $("projects-dots");
-  $("rail-prev").onclick = () => rail.scrollBy({ left: -rail.clientWidth * 0.8, behavior: "smooth" });
-  $("rail-next").onclick = () => rail.scrollBy({ left: rail.clientWidth * 0.8, behavior: "smooth" });
-  dots.innerHTML = Array.from({ length: dotCount }).map((_, i) => `<span class="dot${i === 0 ? " active" : ""}"></span>`).join("");
-  rail.onscroll = () => {
-    const max = Math.max(1, rail.scrollWidth - rail.clientWidth);
-    const active = Math.round((rail.scrollLeft / max) * (dotCount - 1));
-    dots.querySelectorAll(".dot").forEach((d, i) => d.classList.toggle("active", i === Math.min(active, dotCount - 1)));
-  };
-}
-
 function setupNav() {
   const toggle = $("nav-toggle");
   const mobile = $("nav-mobile");
@@ -318,18 +313,31 @@ function setupNav() {
   );
 }
 
+/** Reveal the page by fading out the first-load overlay. Safe to call twice. */
+function hidePageLoader() {
+  const loader = $("page-loader");
+  if (loader) loader.classList.add("hidden");
+}
+
 async function main() {
   setupNav();
-  const admin = await getAdmin();
-  const isAdmin = admin !== null;
-  const previewDrafts = isAdmin && new URLSearchParams(location.search).get("preview") === "1";
-  if (previewDrafts) {
-    $("preview-bar").className = "notice-bar";
-    $("preview-bar").textContent =
-      "Draft preview — you are seeing unpublished content. Visitors see the published site.";
+  try {
+    const admin = await getAdmin();
+    const isAdmin = admin !== null;
+    const previewDrafts = isAdmin && new URLSearchParams(location.search).get("preview") === "1";
+    if (previewDrafts) {
+      $("preview-bar").className = "notice-bar";
+      $("preview-bar").textContent =
+        "Draft preview — you are seeing unpublished content. Visitors see the published site.";
+    }
+    const { data } = await loadContent(previewDrafts);
+    render(data, isAdmin);
+  } finally {
+    hidePageLoader();
   }
-  const { data } = await loadContent(previewDrafts);
-  render(data, isAdmin);
 }
+
+// Safety net: never leave the overlay up if something stalls or throws.
+setTimeout(hidePageLoader, 8000);
 
 main();

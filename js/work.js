@@ -122,11 +122,10 @@ function projectCard(p) {
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
   return `
     <article class="wp-card">
-      <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(p.title)}">${thumb}
-        ${p.featured ? `<span class="wp-flag">★ Featured</span>` : ""}
-      </a>
+      <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(p.title)}">${thumb}</a>
       <div class="wp-body">
         <div class="wp-meta">
+          ${p.featured ? `<span class="wp-flag">★ Featured</span>` : ""}
           ${cat ? `<span class="wp-cat">${esc(cat.name)}</span>` : ""}
           ${p.project_date ? `<span class="wp-date">${esc(formatDate(p.project_date))}</span>` : ""}
         </div>

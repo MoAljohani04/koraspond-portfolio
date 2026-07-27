@@ -428,7 +428,8 @@ function openProjectForm(_container, project, categories, reload) {
     </div>
 
     <div id="up-cover"></div>
-    ${toggle({ label: "Featured project", name: "featured", checked: !!project?.featured, hint: "Featured projects appear in the homepage carousel." })}
+    <div id="up-client-logo"></div>
+    ${toggle({ label: "Featured project", name: "featured", checked: !!project?.featured, hint: "Featured projects show as clickable client logos in the homepage “Featured Clients” grid." })}
     <div id="gallerybox"></div>
     <div id="videobox"></div>
     <div><button class="btn btn-primary" type="submit">${project ? "Save project" : "Create project"}</button></div>
@@ -438,6 +439,9 @@ function openProjectForm(_container, project, categories, reload) {
   box.querySelector('[data-x="close"]').onclick = () => { box.innerHTML = ""; };
   const cover = imageUpload(box.querySelector("#up-cover"),
     { label: "Cover image", folder: "projects", value: project?.cover_image || "" });
+  const clientLogo = imageUpload(box.querySelector("#up-client-logo"),
+    { label: "Client logo", folder: "projects", value: project?.client_logo || "",
+      hint: "Shown in the homepage “Featured Clients” grid. A transparent PNG or SVG works best." });
 
   if (project) {
     renderGallery(box.querySelector("#gallerybox"), project, reload);
@@ -457,6 +461,7 @@ function openProjectForm(_container, project, categories, reload) {
       objectives: v.objectives, role: v.role, duration_text: v.duration_text || null,
       challenges: v.challenges, outcome: v.outcome, project_type: v.project_type || null,
       cover_image: cover.getUrl() || null, cover_alt: v.cover_alt || "",
+      client_logo: clientLogo.getUrl() || null,
       project_date: v.project_date || null, client_name: v.client_name || null,
       project_url: v.project_url || null, behance_url: v.behance_url || null, github_url: v.github_url || null,
       project_state: v.project_state, featured: v.featured === "true",

@@ -117,3 +117,48 @@ export function socialIconName(platform) {
   if (platform === "github") return "github";
   return "mail";
 }
+
+// ── Brand logos for tools & technologies ────────────────────────────────────
+// Maps a tool/technology name to its Simple Icons slug. Common names that don't
+// match their slug 1:1 are listed explicitly; anything else falls back to a
+// slugified guess and lets the CDN 404 (handled by the <img> onerror, which
+// then shows an initials badge instead). Served from https://cdn.simpleicons.org.
+// Only verified-working Simple Icons slugs are listed. Some well-known brands
+// (ChatGPT/OpenAI, the Adobe suite, Canva, Slack, VS Code, C#) have been pulled
+// from Simple Icons for trademark reasons and have no CDN icon — those simply
+// fall back to an initials badge (or an admin-uploaded icon_url).
+const TECH_LOGO_SLUGS = {
+  wordpress: "wordpress", elementor: "elementor", woocommerce: "woocommerce",
+  wix: "wix", webflow: "webflow", shopify: "shopify", squarespace: "squarespace",
+  figma: "figma", framer: "framer",
+  claude: "claude", "claude ai": "claude", anthropic: "anthropic",
+  gemini: "googlegemini", "google gemini": "googlegemini",
+  html: "html5", html5: "html5", css: "css", css3: "css",
+  javascript: "javascript", js: "javascript", typescript: "typescript", ts: "typescript",
+  php: "php", python: "python", java: "openjdk", "c++": "cplusplus",
+  "node.js": "nodedotjs", node: "nodedotjs", nodejs: "nodedotjs",
+  react: "react", "react.js": "react", "next.js": "nextdotjs", nextjs: "nextdotjs",
+  vue: "vuedotjs", "vue.js": "vuedotjs", angular: "angular", svelte: "svelte",
+  tailwind: "tailwindcss", "tailwind css": "tailwindcss", tailwindcss: "tailwindcss",
+  bootstrap: "bootstrap", sass: "sass", scss: "sass", jquery: "jquery",
+  git: "git", github: "github", gitlab: "gitlab",
+  mysql: "mysql", postgresql: "postgresql", postgres: "postgresql",
+  mongodb: "mongodb", supabase: "supabase", firebase: "firebase", sqlite: "sqlite",
+  docker: "docker", linux: "linux", nginx: "nginx", vercel: "vercel", netlify: "netlify",
+  notion: "notion", trello: "trello", jira: "jira", asana: "asana",
+};
+
+/**
+ * Best-effort brand logo URL for a tool/technology name, or "" when there is no
+ * sensible guess. Callers should render a fallback (e.g. an initials badge) and
+ * add an `onerror` handler in case the CDN has no icon for the guessed slug.
+ */
+export function techLogo(name) {
+  if (!name) return "";
+  const key = String(name).trim().toLowerCase();
+  const slug = TECH_LOGO_SLUGS[key];
+  if (slug) return `https://cdn.simpleicons.org/${slug}`;
+  // Single-word alphanumeric names frequently match a Simple Icons slug as-is.
+  if (/^[a-z0-9]+$/.test(key)) return `https://cdn.simpleicons.org/${key}`;
+  return "";
+}

@@ -196,6 +196,7 @@ svg { width: 20px; height: 20px; }
 .section-head { text-align: center; margin-bottom: 44px; }
 .section-head h2 { font-size: 30px; font-weight: 800; color: var(--color-text); }
 .section-rule { width: 64px; height: 4px; border-radius: 999px; background: var(--color-primary); margin: 12px auto 0; }
+.section-sub { color: var(--color-text-muted); font-size: 15px; margin-top: 16px; }
 
 /* ── Worked-on cards ─────────────────────────────────────────────────────── */
 .cards-grid { display: grid; gap: 20px; grid-template-columns: repeat(4, 1fr); }
@@ -257,6 +258,29 @@ svg { width: 20px; height: 20px; }
 .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-border-strong); transition: all .2s; }
 .dot.active { width: 20px; background: var(--color-primary); }
 
+/* ── Featured clients grid ───────────────────────────────────────────────── */
+.clients-grid { display: grid; gap: 24px; grid-template-columns: repeat(4, 1fr); }
+.client-tile {
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  padding: 28px 20px; border-radius: var(--radius);
+  border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-card);
+  transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.client-tile:hover { transform: translateY(-5px); box-shadow: var(--shadow-glow); border-color: var(--color-primary-border); }
+.client-logo {
+  width: 100%; height: 84px; display: flex; align-items: center; justify-content: center;
+  padding: 8px; border-radius: 14px; background: var(--color-surface-2); overflow: hidden;
+}
+.client-logo img { max-width: 100%; max-height: 68px; object-fit: contain; }
+.client-logo .ph { font-size: 18px; font-weight: 800; color: var(--color-primary); line-height: 1.2; padding: 6px; }
+.client-name { font-size: 16px; font-weight: 700; color: var(--color-text); }
+.client-proj { font-size: 13px; color: var(--color-text-muted); }
+.client-cta {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 2px;
+  color: var(--color-primary); font-size: 13px; font-weight: 600;
+}
+.client-cta svg { width: 15px; height: 15px; }
+
 /* ── Skills + certificates ───────────────────────────────────────────────── */
 .two-col { display: grid; gap: 48px; grid-template-columns: 1fr 1fr; }
 .col-head { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
@@ -278,6 +302,11 @@ svg { width: 20px; height: 20px; }
   display: flex; align-items: center; justify-content: center;
 }
 .skill-tile img { width: 40px; height: 40px; object-fit: contain; }
+/* When a logo is present, hide the initials badge — unless the logo failed to
+   load (`.no-logo`), in which case fall back to the badge. */
+.skill-tile.has-logo .skill-badge { display: none; }
+.skill-tile.has-logo.no-logo .skill-badge { display: flex; }
+.skill-tile.no-logo .skill-logo { display: none; }
 .skill-tile span.label { font-size: 12px; color: var(--color-text-muted); font-weight: 500; text-align: center; }
 .cert-list { display: flex; flex-direction: column; gap: 20px; }
 .cert-card {
@@ -432,8 +461,10 @@ svg { width: 20px; height: 20px; }
 .wp-card:hover .wp-thumb img, .course-card:hover .cc-thumb img { transform: scale(1.04); }
 .wp-thumb span, .cc-thumb span { color: var(--color-text-faint); font-weight: 700; font-size: 16px; text-align: center; padding: 20px; }
 .wp-flag {
-  position: absolute; top: 12px; left: 12px; padding: 4px 10px; border-radius: 999px;
-  background: var(--color-primary); color: var(--color-on-primary); font-size: 11px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 1.4;
+  background: var(--color-primary-soft); color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
 }
 .wp-body, .cc-body { padding: 20px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .wp-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
@@ -548,6 +579,22 @@ a.tag:hover { background: var(--color-primary); color: var(--color-on-primary); 
 /* ── Loading + responsive ────────────────────────────────────────────────── */
 .loading { text-align: center; color: var(--color-text-muted); padding: 80px 20px; font-size: 14px; }
 
+/* First-load overlay for the homepage (see index.html). */
+.page-loader {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-background);
+  transition: opacity .35s ease, visibility .35s ease;
+}
+.page-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.pl-spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid var(--color-primary-border); border-top-color: var(--color-primary);
+  animation: pl-spin .8s linear infinite;
+}
+@keyframes pl-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .pl-spinner { animation-duration: 1.6s; } }
+
 @media (max-width: 1024px) {
   .nav-links { display: none; }
   .nav-toggle { display: inline-flex; }
@@ -556,11 +603,13 @@ a.tag:hover { background: var(--color-primary); color: var(--color-on-primary); 
   .proj-card { flex-basis: 46%; }
   .two-col { grid-template-columns: 1fr; }
   .wc-grid, .wp-grid, .course-grid, .loading-grid { grid-template-columns: repeat(2, 1fr); }
+  .clients-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 720px) {
   .hero-grid { grid-template-columns: 1fr; padding-top: 48px; padding-bottom: 64px; }
   .cards-grid { grid-template-columns: 1fr; }
   .skills-grid { grid-template-columns: repeat(3, 1fr); }
+  .clients-grid { grid-template-columns: repeat(2, 1fr); }
   .proj-card { flex-basis: 85%; }
   .form-row { grid-template-columns: 1fr; }
   .cert-card { flex-direction: column; }
