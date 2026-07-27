@@ -165,6 +165,7 @@ const TECH_LOGO_SLUGS = {
   git: "git", github: "github", gitlab: "gitlab", bitbucket: "bitbucket",
   docker: "docker", kubernetes: "kubernetes", jenkins: "jenkins", ansible: "ansible",
   linux: "linux", ubuntu: "ubuntu", nginx: "nginx", vercel: "vercel", netlify: "netlify",
+  render: "render", railway: "railway", "render.com": "render",
   cloudflare: "cloudflare", heroku: "heroku", digitalocean: "digitalocean",
   "google cloud": "googlecloud", gcp: "googlecloud",
   // Databases / backend
