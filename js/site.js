@@ -2,7 +2,7 @@
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
-  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, techLogo,
+  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, techLogo, companyLogo,
 } from "./helpers.js";
 import { initContactForm } from "./contact.js";
 
@@ -95,11 +95,6 @@ function render(content, isAdmin) {
   $("hero-headline").innerHTML =
     `${esc(hero.headline)}${hero.highlighted_text ? ` <span class="grad">${esc(hero.highlighted_text)}</span>` : ""}`;
   $("hero-desc").textContent = hero.description || "";
-  if (hero.background_image) {
-    const bg = $("hero-bg");
-    bg.src = hero.background_image;
-    bg.hidden = false;
-  }
   const actions = [];
   if (hero.primary_visible && hero.primary_label)
     actions.push(`<a class="btn btn-primary" href="${safeUrl(hero.primary_url)}">${esc(hero.primary_label)} ${icon("arrow")}</a>`);
@@ -167,9 +162,12 @@ function render(content, isAdmin) {
     $("clients-grid").innerHTML = clients
       .map((c) => {
         const href = `work.html?client=${encodeURIComponent(c.name)}`;
-        const logo = c.logo
-          ? `<img src="${escAttr(c.logo)}" alt="${escAttr(c.name)} logo" loading="lazy" />`
-          : `<span class="ph">${esc(c.name.toUpperCase())}</span>`;
+        const logoUrl = c.logo || companyLogo(c.name);
+        const ph = `<span class="ph">${esc(c.name.toUpperCase())}</span>`;
+        // Show the logo when it loads; fall back to the name badge if it fails.
+        const logo = logoUrl
+          ? `<img src="${escAttr(logoUrl)}" alt="${escAttr(c.name)} logo" loading="lazy" onerror="this.closest('.client-logo').classList.add('noimg')" />${ph}`
+          : ph;
         return `
         <a class="client-tile" href="${href}" aria-label="See the work delivered for ${escAttr(c.name)}">
           <div class="client-logo">${logo}</div>

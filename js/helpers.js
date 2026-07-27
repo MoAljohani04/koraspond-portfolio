@@ -194,3 +194,33 @@ export function techLogo(name) {
   const slug = key.normalize("NFKD").replace(/[^a-z0-9]/g, "");
   return slug ? `https://cdn.simpleicons.org/${slug}` : "";
 }
+
+// ── Company logos for portfolio clients ─────────────────────────────────────
+// Best-known website domains for the clients shown on the site, used to auto-
+// render a real company logo (via Google's favicon service) on the Featured
+// Clients grid and the Work cards. An uploaded `client_logo` always wins; any
+// client not listed here falls back to a styled name badge. Correct or extend
+// these freely — the key is the lower-cased client name.
+const CLIENT_DOMAINS = {
+  "al borg diagnostics": "alborgdiagnostics.com",
+  "iciec": "iciec.isdb.org",
+  "elite auto distribution jaecoo and omoda": "omoda.com",
+  "jaecoo": "jaecoo.com",
+  "omoda": "omoda.com",
+  "bestune": "bestune.com.cn",
+  "aramco station": "aramco.com",
+  "aramco": "aramco.com",
+  "redsea mall": "redseamall.com",
+  "red sea mall": "redseamall.com",
+};
+
+/**
+ * Logo image URL for a known client (its website favicon), or "" if the client
+ * isn't mapped. Pass an explicit `domain` to override the lookup. Callers should
+ * still render a name-badge fallback and an `onerror` handler.
+ */
+export function companyLogo(clientName, domain) {
+  const d = domain || CLIENT_DOMAINS[String(clientName || "").trim().toLowerCase()];
+  if (!d) return "";
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128`;
+}

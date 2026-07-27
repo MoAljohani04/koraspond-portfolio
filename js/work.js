@@ -4,7 +4,7 @@
 // fallback so deep links work on any host.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
-import { esc, escAttr, safeUrl, formatDate, icon, slugify } from "./helpers.js";
+import { esc, escAttr, safeUrl, formatDate, icon, slugify, companyLogo } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
 
 const BASE = "work";
@@ -122,6 +122,10 @@ function projectCard(p) {
     ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" loading="lazy" />`
     : `<span>${esc(p.title)}</span>`;
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
+  const clientLogoUrl = p.client_name ? (p.client_logo || companyLogo(p.client_name)) : "";
+  const clientMark = clientLogoUrl
+    ? `<img class="wp-client-logo" src="${escAttr(clientLogoUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
+    : "";
   return `
     <article class="wp-card">
       <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(p.title)}">${thumb}</a>
@@ -133,7 +137,7 @@ function projectCard(p) {
         </div>
         <h3><a data-route="${route}" href="${escAttr(rootHref(route))}">${esc(p.title)}</a></h3>
         <p>${esc(p.short_description)}</p>
-        ${p.project_type || p.client_name ? `<div class="wp-sub">${p.project_type ? esc(p.project_type) : ""}${p.project_type && p.client_name ? " · " : ""}${p.client_name ? `Client: ${esc(p.client_name)}` : ""}</div>` : ""}
+        ${p.project_type || p.client_name ? `<div class="wp-sub">${p.project_type ? esc(p.project_type) : ""}${p.project_type && p.client_name ? " · " : ""}${p.client_name ? `${clientMark}Client: ${esc(p.client_name)}` : ""}</div>` : ""}
         <div class="wp-tags">${tools}</div>
         <div class="wp-actions">
           <a class="btn btn-primary btn-sm" data-route="${route}" href="${escAttr(rootHref(route))}">View Project ${icon("arrow")}</a>
@@ -269,13 +273,20 @@ function viewClient(clientName) {
     "newest"
   );
   const title = list[0]?.client_name || String(clientName);
+  const logoUrl = list.find((p) => p.client_logo)?.client_logo || companyLogo(title);
+  const headLogo = logoUrl
+    ? `<img class="client-head-logo" src="${escAttr(logoUrl)}" alt="${escAttr(title)} logo" onerror="this.remove()" />`
+    : "";
 
   transition(`
     ${breadcrumb([{ label: "My Work", route: BASE }, { label: title }])}
     <header class="cat-head">
-      <div>
-        <h1>${esc(title)}</h1>
-        <p>Projects I delivered for ${esc(title)}.</p>
+      <div class="client-head-main">
+        ${headLogo}
+        <div>
+          <h1>${esc(title)}</h1>
+          <p>Projects I delivered for ${esc(title)}.</p>
+        </div>
       </div>
       <span class="cat-count">${list.length} ${list.length === 1 ? "project" : "projects"}</span>
     </header>
