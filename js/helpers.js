@@ -214,13 +214,25 @@ const CLIENT_DOMAINS = {
   "red sea mall": "redseamall.com",
 };
 
+// Exact logo files bundled in the repo (site-root-absolute paths), used in
+// preference to the favicon service for crisp, correct logos. Add more here as
+// you collect them (or upload per-project via the admin Client logo field).
+const CLIENT_LOGOS = {
+  "al borg diagnostics": "/assets/clients/alborg.png",
+  "redsea mall": "/assets/clients/redseamall.svg",
+  "red sea mall": "/assets/clients/redseamall.svg",
+};
+
 /**
- * Logo image URL for a known client (its website favicon), or "" if the client
- * isn't mapped. Pass an explicit `domain` to override the lookup. Callers should
- * still render a name-badge fallback and an `onerror` handler.
+ * Logo image URL for a known client: a bundled logo file if we have one, else
+ * the website favicon, else "" when the client isn't mapped. Pass an explicit
+ * `domain` to override the favicon lookup. Callers should still render a
+ * name-badge fallback and an `onerror` handler.
  */
 export function companyLogo(clientName, domain) {
-  const d = domain || CLIENT_DOMAINS[String(clientName || "").trim().toLowerCase()];
+  const key = String(clientName || "").trim().toLowerCase();
+  if (CLIENT_LOGOS[key]) return CLIENT_LOGOS[key];
+  const d = domain || CLIENT_DOMAINS[key];
   if (!d) return "";
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128`;
 }
