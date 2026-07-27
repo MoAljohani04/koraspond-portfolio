@@ -147,35 +147,34 @@ function render(content, isAdmin) {
     if (isAdmin) $("worked-edit").innerHTML = editChip("admin.html#experience", false);
   }
 
-  // Featured clients — a grid of logos, each linking to that client's project.
+  // Featured clients — one tile per client (deduped), linking to a page that
+  // lists every project delivered for that client.
   const featured = projects.filter((p) => p.featured).sort((a, b) => a.featured_order - b.featured_order);
-  const list = featured.length ? featured : projects;
-  if (list.length) {
+  const source = featured.length ? featured : projects;
+  const clientMap = new Map();
+  for (const p of source) {
+    const cn = (p.client_name || "").trim();
+    if (!cn) continue;
+    const key = cn.toLowerCase();
+    if (!clientMap.has(key)) clientMap.set(key, { name: cn, logo: null, count: 0 });
+    const entry = clientMap.get(key);
+    entry.count += 1;
+    if (!entry.logo && p.client_logo) entry.logo = p.client_logo;
+  }
+  const clients = [...clientMap.values()];
+  if (clients.length) {
     $("projects").hidden = false;
-    const catSlugFor = (p) => {
-      const mapped = projectCatMap
-        .filter((m) => m.project_id === p.id)
-        .map((m) => projectCategories.find((c) => c.id === m.category_id))
-        .filter(Boolean);
-      const cat = mapped[0] || projectCategories.find((c) => c.id === p.category_id);
-      return cat ? cat.slug : "all";
-    };
-    $("clients-grid").innerHTML = list
-      .map((p) => {
-        const name = p.client_name || p.title;
-        const sub = p.client_name ? p.title : "";
-        const href = p.slug
-          ? `work.html?c=${encodeURIComponent(catSlugFor(p))}&p=${encodeURIComponent(p.slug)}`
-          : "work.html";
-        const logo = p.client_logo
-          ? `<img src="${escAttr(p.client_logo)}" alt="${escAttr(name)} logo" loading="lazy" />`
-          : `<span class="ph">${esc(name.toUpperCase())}</span>`;
+    $("clients-grid").innerHTML = clients
+      .map((c) => {
+        const href = `work.html?client=${encodeURIComponent(c.name)}`;
+        const logo = c.logo
+          ? `<img src="${escAttr(c.logo)}" alt="${escAttr(c.name)} logo" loading="lazy" />`
+          : `<span class="ph">${esc(c.name.toUpperCase())}</span>`;
         return `
-        <a class="client-tile" href="${href}" aria-label="View the project for ${escAttr(name)}">
+        <a class="client-tile" href="${href}" aria-label="See the work delivered for ${escAttr(c.name)}">
           <div class="client-logo">${logo}</div>
-          <div class="client-name">${esc(name)}</div>
-          ${sub ? `<div class="client-proj">${esc(sub)}</div>` : ""}
-          <span class="client-cta">View project ${icon("arrow")}</span>
+          <div class="client-name">${esc(c.name)}</div>
+          <span class="client-cta">${c.count} ${c.count === 1 ? "project" : "projects"} ${icon("arrow")}</span>
         </a>`;
       })
       .join("");
@@ -188,15 +187,19 @@ function render(content, isAdmin) {
   // Courses preview
   renderCoursesPreview(courses, isAdmin);
 
-  // Skills — prefer an uploaded icon, else an auto brand logo, else initials.
+  // Skills — only tools that resolve to a real logo are shown. Each tile starts
+  // hidden ("pending") and is revealed on load; tiles whose logo fails to load
+  // (no brand icon exists) remove themselves, so the grid is a clean logo wall.
   $("skills-grid").innerHTML = skills
     .map((s) => {
       const logo = s.icon_url || techLogo(s.name);
-      const initials2 = s.name.slice(0, 2).toUpperCase();
-      const img = logo
-        ? `<img class="skill-logo" src="${escAttr(logo)}" alt="${escAttr(s.name)}" loading="lazy" onerror="this.closest('.skill-tile').classList.add('no-logo')" />`
-        : "";
-      return `<div class="skill-tile${logo ? " has-logo" : ""}" title="${escAttr(s.name)}">${img}<span class="skill-badge">${esc(initials2)}</span><span class="label">${esc(s.name)}</span></div>`;
+      if (!logo) return "";
+      return `<div class="skill-tile pending" title="${escAttr(s.name)}">
+        <img class="skill-logo" src="${escAttr(logo)}" alt="${escAttr(s.name)}"
+          onload="this.closest('.skill-tile').classList.remove('pending')"
+          onerror="this.closest('.skill-tile').remove()" />
+        <span class="label">${esc(s.name)}</span>
+      </div>`;
     })
     .join("");
   if (isAdmin) $("skills-edit").innerHTML = editChip("admin.html#skills", false);

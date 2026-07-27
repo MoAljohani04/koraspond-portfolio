@@ -105,10 +105,10 @@ function courseCard(c) {
     : `<span>${esc((c.provider || c.title).toUpperCase())}</span>`;
   return `
     <article class="course-card">
-      <a class="cc-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(c.title)}">${thumb}
-        ${c.featured ? `<span class="wp-flag">★ Featured</span>` : ""}</a>
+      <a class="cc-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(c.title)}">${thumb}</a>
       <div class="cc-body">
         <div class="wp-meta">
+          ${c.featured ? `<span class="wp-flag">★ Featured</span>` : ""}
           ${c.provider ? `<span class="wp-cat">${esc(c.provider)}</span>` : ""}
           ${c.completion_date ? `<span class="wp-date">${esc(formatDate(c.completion_date))}</span>` : ""}
         </div>

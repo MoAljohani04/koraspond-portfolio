@@ -128,37 +128,69 @@ export function socialIconName(platform) {
 // from Simple Icons for trademark reasons and have no CDN icon — those simply
 // fall back to an initials badge (or an admin-uploaded icon_url).
 const TECH_LOGO_SLUGS = {
+  // CMS / site builders
   wordpress: "wordpress", elementor: "elementor", woocommerce: "woocommerce",
   wix: "wix", webflow: "webflow", shopify: "shopify", squarespace: "squarespace",
-  figma: "figma", framer: "framer",
+  drupal: "drupal", joomla: "joomla", ghost: "ghost", strapi: "strapi", contentful: "contentful",
+  // Design tools
+  figma: "figma", framer: "framer", sketch: "sketch", invision: "invision", blender: "blender",
+  // AI
   claude: "claude", "claude ai": "claude", anthropic: "anthropic",
-  gemini: "googlegemini", "google gemini": "googlegemini",
+  gemini: "googlegemini", "google gemini": "googlegemini", huggingface: "huggingface",
+  tensorflow: "tensorflow", pytorch: "pytorch", opencv: "opencv",
+  // Markup / languages
   html: "html5", html5: "html5", css: "css", css3: "css",
   javascript: "javascript", js: "javascript", typescript: "typescript", ts: "typescript",
   php: "php", python: "python", java: "openjdk", "c++": "cplusplus",
+  go: "go", golang: "go", rust: "rust", ruby: "ruby", kotlin: "kotlin",
+  swift: "swift", dart: "dart", "c": "c", lua: "lua", perl: "perl", scala: "scala",
+  // Runtimes / frameworks
   "node.js": "nodedotjs", node: "nodedotjs", nodejs: "nodedotjs",
-  react: "react", "react.js": "react", "next.js": "nextdotjs", nextjs: "nextdotjs",
+  react: "react", "react.js": "react", reactnative: "react", "react native": "react",
+  "next.js": "nextdotjs", nextjs: "nextdotjs", next: "nextdotjs",
+  "nuxt.js": "nuxtdotjs", nuxt: "nuxtdotjs",
   vue: "vuedotjs", "vue.js": "vuedotjs", angular: "angular", svelte: "svelte",
+  astro: "astro", gatsby: "gatsby", remix: "remixrun", solid: "solid", qwik: "qwik",
+  laravel: "laravel", django: "django", flask: "flask", express: "express",
+  "express.js": "express", spring: "spring", rails: "rubyonrails", "ruby on rails": "rubyonrails",
+  flutter: "flutter", ".net": "dotnet", dotnet: "dotnet",
+  // Styling / build
   tailwind: "tailwindcss", "tailwind css": "tailwindcss", tailwindcss: "tailwindcss",
   bootstrap: "bootstrap", sass: "sass", scss: "sass", jquery: "jquery",
-  git: "git", github: "github", gitlab: "gitlab",
-  mysql: "mysql", postgresql: "postgresql", postgres: "postgresql",
-  mongodb: "mongodb", supabase: "supabase", firebase: "firebase", sqlite: "sqlite",
-  docker: "docker", linux: "linux", nginx: "nginx", vercel: "vercel", netlify: "netlify",
-  notion: "notion", trello: "trello", jira: "jira", asana: "asana",
+  "material ui": "mui", mui: "mui", chakra: "chakraui",
+  webpack: "webpack", vite: "vite", babel: "babel", npm: "npm", yarn: "yarn",
+  eslint: "eslint", prettier: "prettier", "three.js": "threedotjs", threejs: "threedotjs",
+  gsap: "greensock", greensock: "greensock", redux: "redux", graphql: "graphql",
+  // Version control / DevOps
+  git: "git", github: "github", gitlab: "gitlab", bitbucket: "bitbucket",
+  docker: "docker", kubernetes: "kubernetes", jenkins: "jenkins", ansible: "ansible",
+  linux: "linux", ubuntu: "ubuntu", nginx: "nginx", vercel: "vercel", netlify: "netlify",
+  cloudflare: "cloudflare", heroku: "heroku", digitalocean: "digitalocean",
+  "google cloud": "googlecloud", gcp: "googlecloud",
+  // Databases / backend
+  mysql: "mysql", postgresql: "postgresql", postgres: "postgresql", mariadb: "mariadb",
+  mongodb: "mongodb", mongo: "mongodb", supabase: "supabase", firebase: "firebase",
+  sqlite: "sqlite", redis: "redis", prisma: "prisma", appwrite: "appwrite",
+  // Tools / SaaS
+  notion: "notion", trello: "trello", jira: "jira", asana: "asana", clickup: "clickup",
+  miro: "miro", airtable: "airtable", postman: "postman", storybook: "storybook",
+  jest: "jest", cypress: "cypress", playwright: "playwright",
+  stripe: "stripe", paypal: "paypal", mailchimp: "mailchimp",
+  // Data
+  pandas: "pandas", numpy: "numpy", jupyter: "jupyter", d3: "d3dotjs", "d3.js": "d3dotjs",
 };
 
 /**
- * Best-effort brand logo URL for a tool/technology name, or "" when there is no
- * sensible guess. Callers should render a fallback (e.g. an initials badge) and
- * add an `onerror` handler in case the CDN has no icon for the guessed slug.
+ * Best-effort brand logo URL for a tool/technology name. Uses the curated slug
+ * map first, then guesses a Simple Icons slug by stripping everything but
+ * letters/numbers (their slugs have no spaces or hyphens, e.g. "tailwindcss").
+ * Since some guesses won't exist on the CDN, callers must handle `onerror`
+ * (the skills grid hides the tile when the icon fails to load).
  */
 export function techLogo(name) {
   if (!name) return "";
   const key = String(name).trim().toLowerCase();
-  const slug = TECH_LOGO_SLUGS[key];
-  if (slug) return `https://cdn.simpleicons.org/${slug}`;
-  // Single-word alphanumeric names frequently match a Simple Icons slug as-is.
-  if (/^[a-z0-9]+$/.test(key)) return `https://cdn.simpleicons.org/${key}`;
-  return "";
+  if (TECH_LOGO_SLUGS[key]) return `https://cdn.simpleicons.org/${TECH_LOGO_SLUGS[key]}`;
+  const slug = key.normalize("NFKD").replace(/[^a-z0-9]/g, "");
+  return slug ? `https://cdn.simpleicons.org/${slug}` : "";
 }

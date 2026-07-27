@@ -72,6 +72,8 @@ async function route() {
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   if (catSlug && projSlug) return viewProject(catSlug, projSlug);
   if (catSlug) return viewCategory(catSlug);
+  const client = query.get("client");
+  if (client) return viewClient(client);
   return viewLanding(query.get("q") || "");
 }
 
@@ -257,6 +259,29 @@ function sortProjects(list, mode) {
   if (mode === "oldest") return list.sort((a, b) => (d(a) || Infinity) - (d(b) || Infinity));
   if (mode === "featured") return list.sort((a, b) => (b.featured - a.featured) || (a.featured_order - b.featured_order));
   return list.sort((a, b) => d(b) - d(a)); // newest
+}
+
+// ── View: a client's work (all projects delivered for one client) ────────────
+function viewClient(clientName) {
+  const key = String(clientName).trim().toLowerCase();
+  const list = sortProjects(
+    STATE.projects.filter((p) => (p.client_name || "").trim().toLowerCase() === key),
+    "newest"
+  );
+  const title = list[0]?.client_name || String(clientName);
+
+  transition(`
+    ${breadcrumb([{ label: "My Work", route: BASE }, { label: title }])}
+    <header class="cat-head">
+      <div>
+        <h1>${esc(title)}</h1>
+        <p>Projects I delivered for ${esc(title)}.</p>
+      </div>
+      <span class="cat-count">${list.length} ${list.length === 1 ? "project" : "projects"}</span>
+    </header>
+    ${list.length
+      ? `<div class="wp-grid">${list.map(projectCard).join("")}</div>`
+      : emptyState("No projects yet", "There are no published projects for this client yet.")}`);
 }
 
 // ── View: project detail ────────────────────────────────────────────────────
