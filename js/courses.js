@@ -144,15 +144,47 @@ function viewLanding() {
       <span class="eyebrow">LEARNING</span>
       <h1>My <span class="grad">Courses</span></h1>
       <p>Courses and certifications I've completed — grouped by provider. Click a provider to see its courses.</p>
-      <div class="hero-actions" style="justify-content:center">
+      <div class="search-box">
+        <span class="search-ic">${icon("globe")}</span>
+        <input id="course-search" type="search" placeholder="Search courses, providers, skills…" aria-label="Search courses" />
+      </div>
+      <div class="hero-actions">
         <a class="btn btn-primary" data-route="${BASE}/all" href="${escAttr(rootHref(`${BASE}/all`))}">View all courses ${icon("arrow")}</a>
       </div>
     </header>
-    ${featured.length ? `<section class="cs-section"><div class="section-head" style="text-align:left;margin-bottom:20px"><h2>Featured</h2></div><div class="course-grid">${featured.map(courseCard).join("")}</div></section>` : ""}
-    <section class="cs-section">
-      <div class="section-head" style="text-align:left;margin-bottom:20px"><h2>Providers</h2></div>
-      ${STATE.providers.length ? `<div class="wc-grid">${providerCards}</div>` : emptyState("No courses yet", "Courses you publish will appear here, grouped by provider.")}
-    </section>`);
+    <div id="courses-results"></div>
+    <div id="courses-groups">
+      ${featured.length ? `<section class="cs-section"><div class="section-head"><h2>Featured</h2></div><div class="course-grid">${featured.map(courseCard).join("")}</div></section>` : ""}
+      <section class="cs-section">
+        <div class="section-head"><h2>Providers</h2></div>
+        ${STATE.providers.length ? `<div class="wc-grid">${providerCards}</div>` : emptyState("No courses yet", "Courses you publish will appear here, grouped by provider.")}
+      </section>
+    </div>`);
+
+  // Same search behaviour as the My Work landing: typing swaps the grouped
+  // sections for a flat result grid, clearing restores them.
+  const input = document.getElementById("course-search");
+  const results = document.getElementById("courses-results");
+  const groups = document.getElementById("courses-groups");
+  const run = (q) => {
+    q = q.trim().toLowerCase();
+    if (!q) { results.innerHTML = ""; groups.style.display = ""; return; }
+    groups.style.display = "none";
+    const matches = STATE.courses.filter((c) => searchCourse(c, q));
+    results.innerHTML = `
+      <div class="results-head"><h2>${matches.length} result${matches.length === 1 ? "" : "s"} for “${esc(q)}”</h2>
+        <button class="btn btn-ghost btn-sm" id="clear-search">Clear</button></div>
+      ${matches.length ? `<div class="course-grid">${matches.map(courseCard).join("")}</div>` : emptyState("No matches", "Try a different keyword, provider or skill.")}`;
+    document.getElementById("clear-search").onclick = () => { input.value = ""; run(""); };
+  };
+  let t;
+  input.addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => run(input.value), 180); });
+}
+
+function searchCourse(c, q) {
+  const hay = [c.title, c.provider, c.instructor, c.short_description, c.description, c.category && c.category.name, ...skillList(c)]
+    .filter(Boolean).join(" ").toLowerCase();
+  return hay.includes(q);
 }
 
 // ── View: single provider ───────────────────────────────────────────────────

@@ -4,7 +4,7 @@
 // fallback so deep links work on any host.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
-import { esc, escAttr, safeUrl, formatDate, icon, slugify, companyLogo } from "./helpers.js";
+import { esc, escAttr, safeUrl, formatDate, icon, slugify, companyLogo, companyLogoFallback } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
 
 const BASE = "work";
@@ -20,13 +20,12 @@ async function loadData(includeDrafts) {
   }
   const supabase = getClient();
   const statuses = includeDrafts ? ["published", "draft", "hidden"] : ["published"];
-  const [cats, projs, map, tech, imgs, vids] = await Promise.all([
+  const [cats, projs, map, tech, imgs] = await Promise.all([
     supabase.from("project_categories").select("*").order("display_order"),
     supabase.from("projects").select("*").in("status", statuses).order("display_order"),
     supabase.from("project_category_map").select("*"),
     supabase.from("project_technologies").select("*").order("display_order"),
     supabase.from("project_images").select("*").order("display_order"),
-    supabase.from("project_videos").select("*").order("display_order"),
   ]);
   const categories = cats.data || [];
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -38,7 +37,6 @@ async function loadData(includeDrafts) {
       cats: catList,
       tools: (tech.data || []).filter((t) => t.project_id === p.id).map((t) => t.name),
       images: (imgs.data || []).filter((i) => i.project_id === p.id),
-      videos: (vids.data || []).filter((v) => v.project_id === p.id),
     };
   });
   return { categories, projects };
@@ -47,7 +45,7 @@ async function loadData(includeDrafts) {
 function normalizeFallback(p, i) {
   return {
     id: `demo-${i}`, title: p.title, slug: slugify(p.title), short_description: p.short_description,
-    cover_image: p.cover_image, cats: [], tools: p.technologies || [], images: [], videos: [],
+    cover_image: p.cover_image, cats: [], tools: p.technologies || [], images: [],
     project_url: p.project_url, project_date: null, status: "published",
   };
 }
@@ -124,7 +122,9 @@ function projectCard(p) {
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
   const clientLogoUrl = p.client_name ? (p.client_logo || companyLogo(p.client_name)) : "";
   const clientMark = clientLogoUrl
-    ? `<img class="wp-client-logo" src="${escAttr(clientLogoUrl)}" alt="" loading="lazy" onerror="this.remove()" />`
+    ? `<img class="wp-client-logo" src="${escAttr(clientLogoUrl)}" alt="" loading="lazy"
+        data-fb="${escAttr(companyLogoFallback(p.client_name))}"
+        onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.remove()}" />`
     : "";
   return `
     <article class="wp-card">
@@ -166,6 +166,8 @@ function viewLanding(initialQuery) {
       </a>`;
   }).join("");
 
+  const featured = STATE.projects.filter((p) => p.featured);
+
   transition(`
     <header class="work-hero">
       <span class="eyebrow">PORTFOLIO</span>
@@ -175,13 +177,20 @@ function viewLanding(initialQuery) {
         <span class="search-ic">${icon("globe")}</span>
         <input id="work-search" type="search" placeholder="Search projects, tools, categories…" value="${escAttr(initialQuery)}" aria-label="Search projects" />
       </div>
+      <div class="hero-actions">
+        <a class="btn btn-primary" data-route="${BASE}/all" href="${escAttr(rootHref(`${BASE}/all`))}">View all projects ${icon("arrow")}</a>
+      </div>
     </header>
     <div id="work-results"></div>
-    <section id="work-cats">
-      ${cats.length ? `<div class="wc-grid">${catCards}</div>` : (STATE.projects.length
-        ? `<div class="wp-grid">${STATE.projects.map(projectCard).join("")}</div>`
-        : emptyState("No work to show yet", "Projects you publish will appear here, grouped by category."))}
-    </section>`);
+    <div id="work-cats">
+      ${featured.length ? `<section class="cs-section"><div class="section-head"><h2>Featured</h2></div><div class="wp-grid">${featured.map(projectCard).join("")}</div></section>` : ""}
+      <section class="cs-section">
+        <div class="section-head"><h2>Categories</h2></div>
+        ${cats.length ? `<div class="wc-grid">${catCards}</div>` : (STATE.projects.length
+          ? `<div class="wp-grid">${STATE.projects.map(projectCard).join("")}</div>`
+          : emptyState("No work to show yet", "Projects you publish will appear here, grouped by category."))}
+      </section>
+    </div>`);
 
   const input = document.getElementById("work-search");
   const results = document.getElementById("work-results");
@@ -275,7 +284,9 @@ function viewClient(clientName) {
   const title = list[0]?.client_name || String(clientName);
   const logoUrl = list.find((p) => p.client_logo)?.client_logo || companyLogo(title);
   const headLogo = logoUrl
-    ? `<img class="client-head-logo" src="${escAttr(logoUrl)}" alt="${escAttr(title)} logo" onerror="this.remove()" />`
+    ? `<img class="client-head-logo" src="${escAttr(logoUrl)}" alt="${escAttr(title)} logo"
+        data-fb="${escAttr(companyLogoFallback(title))}"
+        onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.remove()}" />`
     : "";
 
   transition(`
@@ -323,8 +334,6 @@ function viewProject(catSlug, projSlug) {
   const gallery = p.images.length ? `<div class="pd-gallery">${p.images
     .map((im, i) => `<button class="pd-shot" data-shot="${i}"><img src="${escAttr(im.url)}" alt="${escAttr(im.alt)}" loading="lazy" /></button>`).join("")}</div>` : "";
 
-  const videos = p.videos.length ? `<div class="pd-videos">${p.videos.map(videoEmbed).join("")}</div>` : "";
-
   transition(`
     ${breadcrumb([{ label: "My Work", route: BASE }, { label: cat ? cat.name : "Project", route: cat ? `${BASE}/${cat.slug}` : null }, { label: p.title }])}
     <article class="project-detail">
@@ -342,7 +351,6 @@ function viewProject(catSlug, projSlug) {
       ${section("Objectives", para(p.objectives))}
       ${p.tools.length ? section("Tools & Technologies", `<div class="pd-tags">${p.tools.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>`) : ""}
       ${section("Gallery", gallery)}
-      ${section("Videos", videos)}
       ${section("Challenges & Solutions", para(p.challenges))}
       ${section("Final Outcome", para(p.outcome))}
 
@@ -353,27 +361,6 @@ function viewProject(catSlug, projSlug) {
     <div id="lightbox" class="lightbox" hidden></div>`);
 
   wireLightbox(p.images);
-}
-
-function videoEmbed(v) {
-  const url = String(v.url || "");
-  if (v.provider === "file" || /\.(mp4|webm|ogg)(\?|$)/i.test(url)) {
-    return `<div class="pd-video"><video src="${safeUrl(url)}" controls preload="metadata"></video></div>`;
-  }
-  const embed = toEmbedUrl(url);
-  if (embed) return `<div class="pd-video"><iframe src="${escAttr(embed)}" title="${escAttr(v.title || "Project video")}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>`;
-  return `<a class="btn btn-outline btn-sm" href="${safeUrl(url)}" target="_blank" rel="noopener">Watch video ${icon("external")}</a>`;
-}
-function toEmbedUrl(url) {
-  try {
-    const u = new URL(url);
-    if (/youtube\.com$/.test(u.hostname) || u.hostname === "www.youtube.com") {
-      const id = u.searchParams.get("v"); if (id) return `https://www.youtube.com/embed/${encodeURIComponent(id)}`;
-    }
-    if (u.hostname === "youtu.be") return `https://www.youtube.com/embed/${encodeURIComponent(u.pathname.slice(1))}`;
-    if (/vimeo\.com$/.test(u.hostname)) { const id = u.pathname.split("/").filter(Boolean).pop(); if (id) return `https://player.vimeo.com/video/${encodeURIComponent(id)}`; }
-  } catch { /* ignore */ }
-  return null;
 }
 
 function wireLightbox(images) {

@@ -3,6 +3,7 @@ import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
   esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, techLogo, companyLogo,
+  companyLogoFallback,
 } from "./helpers.js";
 import { initContactForm } from "./contact.js";
 
@@ -164,9 +165,12 @@ function render(content, isAdmin) {
         const href = `work.html?client=${encodeURIComponent(c.name)}`;
         const logoUrl = c.logo || companyLogo(c.name);
         const ph = `<span class="ph">${esc(c.name.toUpperCase())}</span>`;
-        // Show the logo when it loads; fall back to the name badge if it fails.
+        // Show the logo when it loads. If it fails, retry once with the favicon
+        // service, then fall back to the name badge.
         const logo = logoUrl
-          ? `<img src="${escAttr(logoUrl)}" alt="${escAttr(c.name)} logo" loading="lazy" onerror="this.closest('.client-logo').classList.add('noimg')" />${ph}`
+          ? `<img src="${escAttr(logoUrl)}" alt="${escAttr(c.name)} logo" loading="lazy"
+              data-fb="${escAttr(companyLogoFallback(c.name))}"
+              onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.closest('.client-logo').classList.add('noimg')}" />${ph}`
           : ph;
         return `
         <a class="client-tile" href="${href}" aria-label="See the work delivered for ${escAttr(c.name)}">

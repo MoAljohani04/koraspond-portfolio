@@ -60,14 +60,14 @@ sign-up anywhere.**
 
 - **My Work** (`/work`): dynamic category cards → per-category project gallery
   (with sort + tool/type filters) → full project detail page (overview,
-  objectives, my role, tools, gallery lightbox, videos, challenges, outcome,
+  objectives, my role, tools, gallery lightbox, challenges, outcome,
   external links). Clean URLs: `/work/<category>/<project>`.
 - **Courses** (`/courses`): completed courses grouped by **provider** — click a
   provider (e.g. *Anthropic*) to see its courses — plus an all-courses view with
   category / provider / year / skill filters and a certificate viewer.
 - **Admin**: new *Project Categories* (reorder, rename, edit, delete-with-move),
   *Courses* and *Course Categories* sections; projects gained multiple
-  categories, rich case-study fields, video embeds, gallery alt-text + reorder,
+  categories, rich case-study fields, gallery alt-text + reorder,
   duplicate, and a **Preview** button. The Dashboard overview now counts
   categories and courses too.
 - **Homepage** shows a *My Work* category preview and a *Courses* preview, each
@@ -151,9 +151,8 @@ Or use the **VS Code “Live Server”** extension (right-click `index.html` →
   them** to another category or delete them too.
 - **Course Categories** — create, rename, reorder, delete.
 - **Projects** support **multiple categories**, rich case-study fields
-  (objectives, my role, duration, challenges & solutions, outcome), a gallery
-  (with alt text + reordering), and **video embeds** (paste a YouTube/Vimeo link
-  or a direct video-file URL).
+  (objectives, my role, duration, challenges & solutions, outcome), and a gallery
+  (with alt text + reordering).
 - **Media** — upload images / PDFs / CV, copy URLs, set alt text, delete.
 - **Preview** — the “Preview site” link (and `index.html?preview=1`) shows
   drafts to you only. Visitors always see published content.

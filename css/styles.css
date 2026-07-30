@@ -545,9 +545,6 @@ a.tag:hover { background: var(--color-primary); color: var(--color-on-primary); 
 .pd-shot { padding: 0; border: 1px solid var(--color-border); border-radius: 12px; overflow: hidden; cursor: pointer; background: var(--color-surface-2); aspect-ratio: 4 / 3; }
 .pd-shot img { width: 100%; height: 100%; object-fit: cover; transition: transform .25s; }
 .pd-shot:hover img { transform: scale(1.06); }
-.pd-videos { display: grid; gap: 16px; }
-.pd-video { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--color-border); background: #000; aspect-ratio: 16 / 9; }
-.pd-video iframe, .pd-video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .pd-foot { margin-top: 12px; padding-top: 24px; border-top: 1px solid var(--color-border); }
 .cert-preview { border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; background: var(--color-surface-2); }
 .cert-preview img { width: 100%; }
@@ -582,8 +579,12 @@ a.tag:hover { background: var(--color-primary); color: var(--color-on-primary); 
 .skeleton { height: 280px; border-radius: var(--radius); background: linear-gradient(100deg, var(--color-surface) 30%, var(--color-surface-2) 50%, var(--color-surface) 70%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-/* Homepage section: My Work categories + Courses preview */
+/* Grouped sections on the My Work / Courses landing pages. Both pages use the
+   same shape — hero, then left-aligned section headings above each grid — so
+   these live here rather than as inline styles that can drift apart. */
 .cs-section { margin-bottom: 44px; }
+.cs-section > .section-head { text-align: left; margin-bottom: 20px; }
+.work-hero .hero-actions { justify-content: center; }
 .home-cta { text-align: center; margin-top: 34px; }
 
 /* ── Loading + responsive ────────────────────────────────────────────────── */

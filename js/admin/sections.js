@@ -306,17 +306,15 @@ function experienceItemRow(it, reload) {
 // PROJECTS
 // ============================================================================
 export async function renderProjects(container, reload) {
-  const [projects, categories, tech, images, map, videos] = await Promise.all([
+  const [projects, categories, tech, images, map] = await Promise.all([
     listAll("projects"), listAll("project_categories"),
     listAll("project_technologies"), listAll("project_images"),
-    // The next two tables arrive with migration 0004; degrade gracefully until then.
+    // This table arrives with migration 0004; degrade gracefully until then.
     listAll("project_category_map", "project_id").catch(() => []),
-    listAll("project_videos").catch(() => []),
   ]);
   for (const p of projects) {
     p.technologies = tech.filter((t) => t.project_id === p.id);
     p.images = images.filter((i) => i.project_id === p.id);
-    p.videos = videos.filter((v) => v.project_id === p.id);
     p.categoryIds = map.filter((m) => m.project_id === p.id).map((m) => m.category_id);
     if (!p.categoryIds.length && p.category_id) p.categoryIds = [p.category_id];
   }
@@ -361,13 +359,13 @@ function projectRow(p, categories, reload) {
   li.querySelector('[data-x="edit"]').onclick = () => openProjectForm(document, p, categories, reload);
   li.querySelector('[data-x="dup"]').onclick = async () => { if (toastResult(await duplicateProject(p), "Duplicated.")) reload(); };
   li.querySelector('[data-x="del"]').onclick = () =>
-    confirmDelete("projects", p.id, { title: "Delete project?", description: "This removes the project, its gallery images, videos and technologies." }, reload);
+    confirmDelete("projects", p.id, { title: "Delete project?", description: "This removes the project, its gallery images and technologies." }, reload);
   return li;
 }
 
 async function duplicateProject(p) {
   const copy = { ...p };
-  ["id", "created_at", "updated_at", "technologies", "images", "videos", "categoryIds"].forEach((k) => delete copy[k]);
+  ["id", "created_at", "updated_at", "technologies", "images", "categoryIds"].forEach((k) => delete copy[k]);
   copy.title = `${p.title} (copy)`;
   copy.slug = `${p.slug}-copy-${Date.now().toString(36)}`;
   copy.status = "draft"; copy.featured = false;
@@ -375,8 +373,6 @@ async function duplicateProject(p) {
   if (!res.ok) return res;
   for (let i = 0; i < (p.technologies || []).length; i++)
     await createRow("project_technologies", { project_id: res.id, name: p.technologies[i].name, display_order: i }).catch(() => {});
-  for (let i = 0; i < (p.videos || []).length; i++)
-    await createRow("project_videos", { project_id: res.id, url: p.videos[i].url, provider: p.videos[i].provider, title: p.videos[i].title, display_order: i }).catch(() => {});
   if ((p.categoryIds || []).length) await replaceProjectCategories(res.id, p.categoryIds).catch(() => {});
   return res;
 }
@@ -431,7 +427,6 @@ function openProjectForm(_container, project, categories, reload) {
     <div id="up-client-logo"></div>
     ${toggle({ label: "Featured project", name: "featured", checked: !!project?.featured, hint: "Featured projects show as clickable client logos in the homepage “Featured Clients” grid." })}
     <div id="gallerybox"></div>
-    <div id="videobox"></div>
     <div><button class="btn btn-primary" type="submit">${project ? "Save project" : "Create project"}</button></div>
   </form>`;
   wireToggles(box);
@@ -445,9 +440,8 @@ function openProjectForm(_container, project, categories, reload) {
 
   if (project) {
     renderGallery(box.querySelector("#gallerybox"), project, reload);
-    renderVideos(box.querySelector("#videobox"), project, reload);
   } else {
-    box.querySelector("#gallerybox").innerHTML = `<p class="hint">Save the project first to add gallery images and videos.</p>`;
+    box.querySelector("#gallerybox").innerHTML = `<p class="hint">Save the project first to add gallery images.</p>`;
   }
 
   box.querySelector("form").onsubmit = async (e) => {
@@ -513,39 +507,6 @@ function renderGallery(host, project, reload) {
     if (!up.ok) return toast("error", up.error);
     const res = await createRow("project_images", { project_id: project.id, url: up.url, alt: "" });
     if (toastResult(res, "Image added.")) reload();
-  };
-}
-
-function renderVideos(host, project, reload) {
-  host.innerHTML = `<div class="block-inner">
-    <div class="bt">Videos <span class="hint" style="display:inline">— paste a YouTube/Vimeo link, or a direct video-file URL</span></div>
-    <ul class="rows" id="vids"></ul>
-    <form id="vidadd" style="display:grid;gap:8px;grid-template-columns:2fr 1fr 1fr auto;margin-top:12px">
-      <input class="input" name="url" placeholder="https://youtube.com/watch?v=…" required />
-      <input class="input" name="title" placeholder="Title (optional)" />
-      <select class="select" name="provider"><option value="embed">Embed (YouTube/Vimeo)</option><option value="file">Direct file URL</option></select>
-      <button class="btn btn-primary" type="submit">Add</button>
-    </form>
-  </div>`;
-  const ul = host.querySelector("#vids");
-  if (!(project.videos || []).length) ul.innerHTML = `<p class="hint">No videos yet.</p>`;
-  (project.videos || []).forEach((vd) => {
-    const li = el(sortableRow(vd.id, `
-      <span style="width:28px;height:28px;border-radius:8px;background:var(--color-primary-soft);color:var(--color-primary);display:flex;align-items:center;justify-content:center;flex:none">${icon("monitor")}</span>
-      <div class="row-main"><div class="row-title">${esc(vd.title || vd.url)}</div><div class="row-sub">${esc(vd.provider)} · ${esc(vd.url)}</div></div>
-      <div class="row-actions"><button type="button" class="btn btn-danger btn-sm" data-x="del">Remove</button></div>`));
-    li.querySelector('[data-x="del"]').onclick = async () => {
-      if (toastResult(await deleteRow("project_videos", vd.id), "Removed.")) reload();
-    };
-    ul.appendChild(li);
-  });
-  makeSortable(ul, async (ids) => { await reorder("project_videos", ids); });
-  host.querySelector("#vidadd").onsubmit = async (e) => {
-    e.preventDefault();
-    const v = formData(e.target);
-    if (!v.url.trim()) return toast("error", "Video URL is required.");
-    const res = await createRow("project_videos", { project_id: project.id, url: v.url.trim(), title: v.title || "", provider: v.provider });
-    if (toastResult(res, "Video added.")) reload();
   };
 }
 

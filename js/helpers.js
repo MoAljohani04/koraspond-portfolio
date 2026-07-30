@@ -222,6 +222,11 @@ const CLIENT_LOGOS = {
   "al borg diagnostics": "/assets/clients/alborg.png",
   "redsea mall": "/assets/clients/redseamall.svg",
   "red sea mall": "/assets/clients/redseamall.svg",
+  "elite auto distribution jaecoo and omoda": "/assets/clients/omoda-jaecoo.png",
+  "jaecoo and omoda": "/assets/clients/omoda-jaecoo.png",
+  "omoda": "/assets/clients/omoda-jaecoo.png",
+  "jaecoo": "/assets/clients/omoda-jaecoo.png",
+  "bestune": "/assets/clients/bestune.png",
 };
 
 /**
@@ -233,6 +238,17 @@ const CLIENT_LOGOS = {
 export function companyLogo(clientName, domain) {
   const key = String(clientName || "").trim().toLowerCase();
   if (CLIENT_LOGOS[key]) return CLIENT_LOGOS[key];
+  return companyLogoFallback(clientName, domain);
+}
+
+/**
+ * Second-choice logo URL: always the favicon service, never a bundled file.
+ * Callers wire this as the `onerror` retry for `companyLogo`, so a client that
+ * is mapped to a bundled logo which hasn't been added yet (or fails to load)
+ * degrades to its favicon before falling back to a plain name badge.
+ */
+export function companyLogoFallback(clientName, domain) {
+  const key = String(clientName || "").trim().toLowerCase();
   const d = domain || CLIENT_DOMAINS[key];
   if (!d) return "";
   return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128`;

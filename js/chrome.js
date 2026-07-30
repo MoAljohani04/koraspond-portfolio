@@ -77,6 +77,14 @@ export async function initChrome(active) {
     a.classList.toggle("active", a.dataset.navActive === active);
   });
 
+  // Download CV — same button index.html shows, so every page offers it.
+  const cv = $("nav-cv");
+  if (cv && profile.cv_url) {
+    cv.href = safeUrl(profile.cv_url);
+    cv.hidden = false;
+    cv.innerHTML = `Download CV ${icon("download")}`;
+  }
+
   const socialsHost = $("socials");
   if (socialsHost) {
     socialsHost.innerHTML = (socials || [])
