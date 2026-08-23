@@ -202,32 +202,11 @@ export function techLogo(name) {
 // Clients grid and the Work cards. An uploaded `client_logo` always wins; any
 // client not listed here falls back to a styled name badge. Correct or extend
 // these freely — the key is the lower-cased client name.
-const CLIENT_DOMAINS = {
-  "al borg diagnostics": "alborgdiagnostics.com",
-  "iciec": "iciec.isdb.org",
-  "elite auto distribution jaecoo and omoda": "omoda.com",
-  "jaecoo": "jaecoo.com",
-  "omoda": "omoda.com",
-  "bestune": "bestune.com.cn",
-  "aramco station": "aramco.com",
-  "aramco": "aramco.com",
-  "redsea mall": "redseamall.com",
-  "red sea mall": "redseamall.com",
-};
+
 
 // Exact logo files bundled in the repo (site-root-absolute paths), used in
 // preference to the favicon service for crisp, correct logos. Add more here as
 // you collect them (or upload per-project via the admin Client logo field).
-const CLIENT_LOGOS = {
-  "al borg diagnostics": "/assets/clients/alborg.png",
-  "redsea mall": "/assets/clients/redseamall.svg",
-  "red sea mall": "/assets/clients/redseamall.svg",
-  "elite auto distribution jaecoo and omoda": "/assets/clients/omoda-jaecoo.png",
-  "jaecoo and omoda": "/assets/clients/omoda-jaecoo.png",
-  "omoda": "/assets/clients/omoda-jaecoo.png",
-  "jaecoo": "/assets/clients/omoda-jaecoo.png",
-  "bestune": "/assets/clients/bestune.png",
-};
 
 /**
  * Logo image URL for a known client: a bundled logo file if we have one, else

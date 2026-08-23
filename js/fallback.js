@@ -25,7 +25,7 @@ export const FALLBACK = {
     headline: "Turning Ideas into",
     highlighted_text: "Impactful Solutions.",
     description:
-      "Co-op Intern at KORASpond — 1.5 months of learning, building, and contributing to real-world projects.",
+      "Co-op Intern at KORASpond  1.5 months of learning, building, and contributing to real-world projects.",
     primary_label: "View My Work",
     primary_url: "#projects",
     primary_visible: true,
