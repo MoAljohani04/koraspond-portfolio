@@ -4,25 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>Admin · Portfolio</title>
+    <meta name="theme-color" content="#010203" />
+    <title>Portfolio CMS · Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/admin.css" />
+    <link rel="stylesheet" href="css/admin.css?v=2" />
   </head>
   <body>
     <!-- Loading -->
-    <div id="boot" class="boot">
-      Loading…
-    </div>
+    <div id="boot" class="boot">Loading</div>
 
     <!-- Login view -->
     <div id="login-view" class="login-wrap hidden">
       <div class="login-card">
         <div class="login-box">
-          <h1>Administrator Sign In</h1>
-          <p class="sub">Restricted area — approved administrator accounts only.</p>
+          <span class="kicker" style="color: var(--accent)">Restricted</span>
+          <h1>Administrator<br />Sign In</h1>
+          <p class="sub">Approved administrator accounts only. Everything you publish here appears on the live site.</p>
           <div id="login-body"></div>
         </div>
         <p class="login-back"><a href="index.html">← Back to portfolio</a></p>
@@ -34,7 +36,7 @@
       <div class="topbar">
         <span class="t">Portfolio CMS</span>
         <button id="mobile-toggle" aria-label="Toggle menu">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
       </div>
       <aside class="sidebar" id="sidebar">
@@ -51,6 +53,6 @@
       <main class="content" id="content"></main>
     </div>
 
-    <script type="module" src="js/admin/app.js"></script>
+    <script type="module" src="js/admin/app.js?v=2"></script>
   </body>
 </html>

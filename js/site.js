@@ -1,10 +1,12 @@
-// Public portfolio: fetch published content and render it.
+// Public portfolio: fetch published content and render it into the new
+// editorial layout (ported from the Figma design). Everything on the page is
+// still CMS-driven — the design changed, the data contract did not.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
-  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, techLogo, companyLogo,
-  companyLogoFallback,
+  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify,
 } from "./helpers.js";
+import { artwork, projectVisual } from "./artwork.js";
 import { initContactForm } from "./contact.js";
 
 const $ = (id) => document.getElementById(id);
@@ -19,8 +21,8 @@ async function loadContent(includeDrafts) {
   const statuses = includeDrafts ? ["published", "draft"] : ["published"];
 
   const [
-    settings, profile, hero, experiences, items, projects, tech, skills, certs, socials, contact,
-    projectCategories, projectCatMap, courses,
+    settings, profile, hero, experiences, items, projects, tech, skills, skillCats, certs,
+    socials, contact, projectCategories, projectCatMap, courses,
   ] = await Promise.all([
     supabase.from("site_settings").select("*").limit(1).maybeSingle(),
     supabase.from("profile").select("*").limit(1).maybeSingle(),
@@ -30,6 +32,7 @@ async function loadContent(includeDrafts) {
     supabase.from("projects").select("*").in("status", statuses).order("display_order"),
     supabase.from("project_technologies").select("*").order("display_order"),
     supabase.from("skills").select("*").in("status", statuses).order("display_order"),
+    supabase.from("skill_categories").select("*").order("display_order"),
     supabase.from("certificates").select("*").in("status", statuses).order("display_order"),
     supabase.from("social_links").select("*").in("status", statuses).order("display_order"),
     supabase.from("contact_settings").select("*").limit(1).maybeSingle(),
@@ -52,6 +55,7 @@ async function loadContent(includeDrafts) {
       experiences: exps,
       projects: projs,
       skills: skills.data || [],
+      skillCategories: skillCats.data || [],
       certificates: certs.data || [],
       socialLinks: socials.data || [],
       contact: contact.data || FALLBACK.contact,
@@ -62,15 +66,17 @@ async function loadContent(includeDrafts) {
   };
 }
 
-function editChip(href, dark) {
-  const cls = dark ? "edit-chip dark" : "edit-chip lightchip";
-  return `<a class="${cls}" href="${href}" title="Edit">${icon("document", "")}Edit</a>`;
+function editChip(href) {
+  return `<a class="edit-chip" href="${href}" title="Edit">${icon("document", "")}Edit</a>`;
 }
 
+/* -------------------------------------------------------------------------
+   Render
+   ---------------------------------------------------------------------- */
 function render(content, isAdmin) {
   const {
     settings, profile, hero, experiences, projects, skills, certificates, socialLinks, contact,
-    projectCategories = [], projectCatMap = [], courses = [],
+    skillCategories = [], projectCategories = [], projectCatMap = [], courses = [],
   } = content;
 
   // Head / SEO
@@ -79,205 +85,244 @@ function render(content, isAdmin) {
   $("og-title").content = settings.site_title || "Portfolio";
   $("og-description").content = settings.meta_description || "";
 
-  // Navbar
-  $("brand-badge").textContent = initials(profile.full_name);
-  $("brand-name").textContent = profile.full_name || "";
+  renderNav(profile, isAdmin);
+  renderHero(hero, profile, experiences, projects, courses, certificates, skills, isAdmin);
+  renderWork(projects, projectCategories, projectCatMap, isAdmin);
+  renderWorkedOn(experiences, isAdmin);
+  renderExperience(experiences, isAdmin);
+  renderSkills(skills, skillCategories, isAdmin);
+  renderCertificates(certificates, isAdmin);
+  renderCourses(courses, isAdmin);
+  renderContact(contact, profile, socialLinks, isAdmin);
+  renderFooter(profile, settings, socialLinks);
+
+  initContactForm(contact);
+}
+
+/* -- Nav ---------------------------------------------------------------- */
+function renderNav(profile, isAdmin) {
+  $("brand-name").textContent = profile.full_name || "Portfolio";
   $("brand-role").textContent = profile.headline_role || "";
   if (profile.cv_url) {
     const cv = $("nav-cv");
     cv.href = safeUrl(profile.cv_url);
     cv.hidden = false;
-    cv.innerHTML = `Download CV ${icon("download")}`;
+    cv.innerHTML = `CV ${icon("download")}`;
   }
   if (isAdmin) $("nav-dashboard").hidden = false;
+}
 
-  // Hero
-  $("hero-eyebrow").textContent = hero.eyebrow || "";
+/* -- Hero --------------------------------------------------------------- */
+function renderHero(hero, profile, experiences, projects, courses, certificates, skills, isAdmin) {
+  $("hero-eyebrow").textContent = hero.eyebrow || profile.headline_role || "";
   $("hero-headline").innerHTML =
-    `${esc(hero.headline)}${hero.highlighted_text ? ` <span class="grad">${esc(hero.highlighted_text)}</span>` : ""}`;
-  $("hero-desc").textContent = hero.description || "";
+    `${esc(hero.headline)}${hero.highlighted_text ? ` <em class="hl">${esc(hero.highlighted_text)}</em>` : ""}`;
+  $("hero-desc").textContent = hero.description || profile.about || "";
+
   const actions = [];
   if (hero.primary_visible && hero.primary_label)
-    actions.push(`<a class="btn btn-primary" href="${safeUrl(hero.primary_url)}">${esc(hero.primary_label)} ${icon("arrow")}</a>`);
+    actions.push(`<a class="rule-link" href="${safeUrl(hero.primary_url)}">${esc(hero.primary_label)}</a>`);
   if (hero.secondary_visible && hero.secondary_label)
-    actions.push(`<a class="btn btn-outline" href="${safeUrl(hero.secondary_url)}">${esc(hero.secondary_label)} ${icon("mail")}</a>`);
+    actions.push(`<a class="btn btn-outline" href="${safeUrl(hero.secondary_url)}">${esc(hero.secondary_label)}</a>`);
   $("hero-actions").innerHTML = actions.join("");
-  if (isAdmin) $("hero-edit").innerHTML = editChip("admin.html#hero", true);
+  if (isAdmin) $("hero-edit").innerHTML = editChip("admin.html#hero");
 
-  // Experience card (first experience)
+  // The portrait panel: a hero image when one is set, otherwise the crawl
+  // diagram from the design — so the frame is never empty.
+  const art = $("hero-art");
+  const img = hero.background_image || profile.avatar_url;
+  art.innerHTML = img
+    ? `<img src="${escAttr(img)}" alt="" />`
+    : `<span class="art">${artwork("crawl")}</span>`;
+
   const exp = experiences[0];
-  if (exp) {
-    const logo = exp.logo_url
-      ? `<img src="${escAttr(exp.logo_url)}" alt="${escAttr(exp.company)} logo" />`
-      : `<span>${esc(exp.company.toUpperCase())}</span>`;
-    $("experience").innerHTML = `
-      <div class="exp-card">
-        ${isAdmin ? `<div style="position:absolute;right:16px;top:16px">${editChip("admin.html#experience", true)}</div>` : ""}
-        <div class="exp-head">
-          <div class="exp-logo">${logo}</div>
-          <div>
-            <div class="exp-company">${esc(exp.company)}</div>
-            <div class="exp-role">${esc(exp.role)}${exp.department ? ` – ${esc(exp.department)}` : ""}</div>
-            ${exp.duration_label ? `<div class="exp-duration">${icon("calendar")}${esc(exp.duration_label)}</div>` : ""}
-          </div>
-        </div>
-        ${exp.description ? `<p class="exp-desc">${esc(exp.description)}</p>` : ""}
-        ${exp.employment_type ? `<span class="exp-tag">${esc(exp.employment_type.replace(/ Internship$/, " Experience"))}</span>` : ""}
-      </div>`;
+  $("hero-art-cap").textContent = exp
+    ? [exp.role, exp.company, exp.duration_label].filter(Boolean).join(" · ")
+    : profile.headline_role || "";
+
+  const tag = $("hero-art-tag");
+  const mark = initials(profile.full_name, "");
+  if (mark) {
+    tag.textContent = mark;
+    tag.hidden = false;
   }
 
-  // What I worked on
+  // Stat strip — every figure is counted from published content, so it can
+  // never drift away from what the site actually shows.
+  const techCount = new Set(
+    projects.flatMap((p) => (p.technologies || []).map((t) => (typeof t === "string" ? t : t.name)))
+  ).size;
+  const stats = [
+    exp && exp.duration_label && { n: exp.duration_label, l: "Of experience" },
+    projects.length && { n: String(projects.length), l: projects.length === 1 ? "Project" : "Projects" },
+    (techCount || skills.length) && { n: String(techCount || skills.length), l: "Tools & tech" },
+    (courses.length + certificates.length) && {
+      n: String(courses.length + certificates.length), l: "Courses & certs",
+    },
+  ].filter(Boolean).slice(0, 4);
+
+  const host = $("hero-stats");
+  if (stats.length < 2) { host.hidden = true; return; }
+  host.innerHTML = stats
+    .map((s) => `<div><p class="n">${esc(s.n)}</p><p class="l">${esc(s.l)}</p></div>`)
+    .join("");
+}
+
+/* -- Selected work ------------------------------------------------------ */
+function renderWork(projects, categories, catMap, isAdmin) {
+  const section = $("work");
+  if (!projects.length) return;
+
+  const catById = new Map(categories.map((c) => [c.id, c]));
+  const catFor = (p) => {
+    const mapped = catMap.filter((m) => m.project_id === p.id).map((m) => catById.get(m.category_id)).filter(Boolean);
+    return mapped[0] || catById.get(p.category_id) || null;
+  };
+
+  const featured = projects.filter((p) => p.featured).sort((a, b) => a.featured_order - b.featured_order);
+  const list = (featured.length ? featured : projects).slice(0, 5);
+
+  section.hidden = false;
+  $("work-note").textContent =
+    "Each project is described by its sector and by my own contribution. Open one for the full case study.";
+
+  $("work-grid").innerHTML = list
+    .map((p, i) => {
+      const cat = catFor(p);
+      const href = `work.html?c=${encodeURIComponent(cat ? cat.slug : "all")}&p=${encodeURIComponent(p.slug || slugify(p.title))}`;
+      const year = p.project_date ? new Date(p.project_date).getFullYear() : "";
+      const meta = [cat ? cat.name : p.project_type, year].filter(Boolean).join(" — ");
+      return `
+      <a class="pcard${i === 0 ? " wide" : ""}" href="${href}" aria-label="${escAttr(p.title)}">
+        <span class="pcard-art">${projectVisual(p)}</span>
+        <span class="pcard-veil"></span>
+        <span class="pcard-index">${String(i + 1).padStart(2, "0")}</span>
+        <span class="pcard-body">
+          <span>
+            ${meta ? `<span class="pcard-meta">${esc(meta)}</span>` : ""}
+            <h3>${esc(p.title)}</h3>
+            <span class="pcard-teaser">${esc(p.short_description)}</span>
+          </span>
+          <span class="pcard-go">
+            <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </span>
+      </a>`;
+    })
+    .join("");
+  if (isAdmin) $("work-edit").innerHTML = editChip("admin.html#projects");
+}
+
+/* -- What I worked on --------------------------------------------------- */
+function renderWorkedOn(experiences, isAdmin) {
   const items = experiences.flatMap((e) => e.items || []);
-  if (items.length) {
-    $("worked-on").hidden = false;
-    $("worked-grid").innerHTML = items
-      .map(
-        (it) => `
+  if (!items.length) return;
+  $("worked-on").hidden = false;
+  $("worked-grid").innerHTML = items
+    .map(
+      (it) => `
       <article class="work-card">
         <div class="work-ic">${icon(it.icon)}</div>
         <h3>${esc(it.title)}</h3>
         <p>${esc(it.description)}</p>
       </article>`
-      )
-      .join("");
-    if (isAdmin) $("worked-edit").innerHTML = editChip("admin.html#experience", false);
-  }
+    )
+    .join("");
+  if (isAdmin) $("worked-edit").innerHTML = editChip("admin.html#experience");
+}
 
-  // Featured clients — one tile per client (deduped), linking to a page that
-  // lists every project delivered for that client.
-  const featured = projects.filter((p) => p.featured).sort((a, b) => a.featured_order - b.featured_order);
-  const source = featured.length ? featured : projects;
-  const clientMap = new Map();
-  for (const p of source) {
-    const cn = (p.client_name || "").trim();
-    if (!cn) continue;
-    const key = cn.toLowerCase();
-    if (!clientMap.has(key)) clientMap.set(key, { name: cn, logo: null, count: 0 });
-    const entry = clientMap.get(key);
-    entry.count += 1;
-    if (!entry.logo && p.client_logo) entry.logo = p.client_logo;
-  }
-  const clients = [...clientMap.values()];
-  if (clients.length) {
-    $("projects").hidden = false;
-    $("clients-grid").innerHTML = clients
-      .map((c) => {
-        const href = `work.html?client=${encodeURIComponent(c.name)}`;
-        const logoUrl = c.logo || companyLogo(c.name);
-        const ph = `<span class="ph">${esc(c.name.toUpperCase())}</span>`;
-        // Show the logo when it loads. If it fails, retry once with the favicon
-        // service, then fall back to the name badge.
-        const logo = logoUrl
-          ? `<img src="${escAttr(logoUrl)}" alt="${escAttr(c.name)} logo" loading="lazy"
-              data-fb="${escAttr(companyLogoFallback(c.name))}"
-              onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.closest('.client-logo').classList.add('noimg')}" />${ph}`
-          : ph;
-        return `
-        <a class="client-tile" href="${href}" aria-label="See the work delivered for ${escAttr(c.name)}">
-          <div class="client-logo">${logo}</div>
-          <div class="client-name">${esc(c.name)}</div>
-          <span class="client-cta">${c.count} ${c.count === 1 ? "project" : "projects"} ${icon("arrow")}</span>
-        </a>`;
-      })
-      .join("");
-    if (isAdmin) $("projects-edit").innerHTML = editChip("admin.html#projects", true);
-  }
-
-  // My Work categories preview
-  renderWorkPreview(projectCategories, projects, projectCatMap, isAdmin);
-
-  // Courses preview
-  renderCoursesPreview(courses, isAdmin);
-
-  // Skills — only tools that resolve to a real logo are shown. Each tile starts
-  // hidden ("pending") and is revealed on load; tiles whose logo fails to load
-  // (no brand icon exists) remove themselves, so the grid is a clean logo wall.
-  $("skills-grid").innerHTML = skills
-    .map((s) => {
-      const logo = s.icon_url || techLogo(s.name);
-      if (!logo) return "";
-      return `<div class="skill-tile pending" title="${escAttr(s.name)}">
-        <img class="skill-logo" src="${escAttr(logo)}" alt="${escAttr(s.name)}"
-          onload="this.closest('.skill-tile').classList.remove('pending')"
-          onerror="this.closest('.skill-tile').remove()" />
-        <span class="label">${esc(s.name)}</span>
+/* -- Experience timeline ------------------------------------------------ */
+function renderExperience(experiences, isAdmin) {
+  if (!experiences.length) return;
+  $("experience").hidden = false;
+  $("experience-list").innerHTML = experiences
+    .map((e) => {
+      const date = e.duration_label
+        || [e.start_date && formatDate(e.start_date), e.end_date ? formatDate(e.end_date) : "Present"]
+          .filter(Boolean).join(" — ");
+      const company = [e.company, e.department].filter(Boolean).join(" — ");
+      return `
+      <div class="tl-item">
+        ${date ? `<p class="tl-date">${esc(date)}</p>` : ""}
+        <h3>${esc(e.role)}</h3>
+        ${company ? `<p class="tl-company">${esc(company)}</p>` : ""}
+        ${e.description ? `<p class="tl-desc">${esc(e.description)}</p>` : ""}
+        ${e.employment_type ? `<div class="tl-tags"><span class="tag">${esc(e.employment_type)}</span></div>` : ""}
       </div>`;
     })
     .join("");
-  if (isAdmin) $("skills-edit").innerHTML = editChip("admin.html#skills", false);
+  if (isAdmin) $("experience-edit").innerHTML = editChip("admin.html#experience");
+}
 
-  // Certificates
+/* -- Skills ------------------------------------------------------------- */
+function renderSkills(skills, categories, isAdmin) {
+  const host = $("skills-cols");
+  if (!skills.length) {
+    host.innerHTML = `<p class="loading">No skills published yet.</p>`;
+    return;
+  }
+
+  // Grouped by category when the CMS defines them; otherwise split evenly into
+  // three columns so the section keeps the design's rhythm either way.
+  let groups;
+  if (categories.length) {
+    groups = categories
+      .map((c) => ({ name: c.name, items: skills.filter((s) => s.category_id === c.id) }))
+      .filter((g) => g.items.length);
+    const loose = skills.filter((s) => !s.category_id || !categories.some((c) => c.id === s.category_id));
+    if (loose.length) groups.push({ name: "Other", items: loose });
+  } else {
+    const per = Math.ceil(skills.length / 3);
+    groups = [0, 1, 2]
+      .map((i) => ({ name: ["Toolkit", "Also", "And"][i], items: skills.slice(i * per, (i + 1) * per) }))
+      .filter((g) => g.items.length);
+    if (groups.length === 1) groups[0].name = "Toolkit";
+  }
+
+  host.innerHTML = groups
+    .map(
+      (g) => `
+      <div class="skill-col">
+        <h3>${esc(g.name)}</h3>
+        <ul>${g.items.map((s) => `<li>${esc(s.name)}</li>`).join("")}</ul>
+      </div>`
+    )
+    .join("");
+  if (isAdmin) $("skills-edit").innerHTML = editChip("admin.html#skills");
+}
+
+/* -- Certificates ------------------------------------------------------- */
+function renderCertificates(certificates, isAdmin) {
   $("certs-list").innerHTML =
     certificates
       .map((c) => {
         const thumb = c.image_url
-          ? `<img src="${escAttr(c.image_url)}" alt="${escAttr(c.title)}" />`
-          : `<span>${esc((c.organization || c.title).toUpperCase())}</span>`;
+          ? `<img src="${escAttr(c.image_url)}" alt="${escAttr(c.title)}" loading="lazy" />`
+          : `<span>${esc((c.organization || c.title).slice(0, 12).toUpperCase())}</span>`;
         const link = c.verify_url || c.file_url;
         return `
       <article class="cert-card">
         <div class="cert-thumb">${thumb}</div>
         <div>
           <h3>${esc(c.title)}</h3>
-          ${c.organization || c.issue_date ? `<p class="cert-org">${esc(c.organization)}${c.issue_date ? ` · ${esc(formatDate(c.issue_date))}` : ""}</p>` : ""}
+          ${c.organization || c.issue_date
+            ? `<p class="cert-org">${esc(c.organization)}${c.issue_date ? ` · ${esc(formatDate(c.issue_date))}` : ""}</p>`
+            : ""}
           <p>${esc(c.description)}</p>
-          ${link ? `<a class="cert-link" href="${safeUrl(link)}" target="_blank" rel="noopener">View Certificate ${icon("external")}</a>` : ""}
+          ${link ? `<a class="cert-link" href="${safeUrl(link)}" target="_blank" rel="noopener">View certificate ${icon("external")}</a>` : ""}
         </div>
       </article>`;
       })
-      .join("") || `<p style="color:var(--color-text-muted);font-size:14px">No certificates published yet.</p>`;
-  if (isAdmin) $("certs-edit").innerHTML = editChip("admin.html#certificates", false);
-
-  // Contact
-  $("contact-heading").innerHTML = `${esc(contact.heading)} ${isAdmin ? editChip("admin.html#contact", true) : ""}`;
-  $("contact-desc").textContent = contact.description || "";
-  $("socials").innerHTML = socialLinks
-    .map(
-      (l) => `<a class="social-link" href="${safeUrl(l.url)}" ${l.url.startsWith("mailto:") ? "" : 'target="_blank" rel="noopener"'} aria-label="${escAttr(l.label || l.platform)}">${icon(socialIconName(l.platform))}</a>`
-    )
-    .join("");
-
-  initContactForm(contact);
+      .join("") || `<p class="loading">No certificates published yet.</p>`;
+  if (isAdmin) $("certs-edit").innerHTML = editChip("admin.html#certificates");
 }
 
-/** Category cards on the homepage that link into work.html. */
-function renderWorkPreview(categories, projects, catMap, isAdmin) {
-  const section = $("work-preview");
-  if (!section) return;
-  const countFor = (cat) => {
-    const mapped = catMap.filter((m) => m.category_id === cat.id).length;
-    return mapped || projects.filter((p) => p.category_id === cat.id).length;
-  };
-  const cats = categories.filter((c) => countFor(c) > 0).slice(0, 6);
-  if (!cats.length) return;
-  section.hidden = false;
-  $("work-cats-grid").innerHTML = cats
-    .map((c) => {
-      const count = countFor(c);
-      const media = c.cover_image
-        ? `<img src="${escAttr(c.cover_image)}" alt="" loading="lazy" />`
-        : `<span class="wc-ic">${icon(c.icon || "sparkles")}</span>`;
-      return `
-      <a class="wc-card" href="work.html?c=${encodeURIComponent(c.slug)}">
-        <div class="wc-media">${media}</div>
-        <div class="wc-info">
-          <h3>${esc(c.name)}</h3>
-          ${c.description ? `<p>${esc(c.description)}</p>` : ""}
-          <span class="wc-count">${count} ${count === 1 ? "project" : "projects"} ${icon("arrow")}</span>
-        </div>
-      </a>`;
-    })
-    .join("");
-  if (isAdmin) $("work-preview-edit").innerHTML = editChip("admin.html#project-categories", false);
-}
-
-/** Course cards on the homepage that link into courses.html. */
-function renderCoursesPreview(courses, isAdmin) {
+/* -- Courses preview ---------------------------------------------------- */
+function renderCourses(courses, isAdmin) {
   const section = $("courses-preview");
-  if (!section) return;
+  if (!section || !courses.length) return;
   const featured = courses.filter((c) => c.featured);
-  const list = (featured.length ? featured : courses).slice(0, 3);
-  if (!list.length) return;
+  const list = (featured.length ? featured : courses).slice(0, 4);
   section.hidden = false;
   $("courses-preview-grid").innerHTML = list
     .map((c) => {
@@ -285,24 +330,64 @@ function renderCoursesPreview(courses, isAdmin) {
       const href = `courses.html?c=${encodeURIComponent(provSlug)}&p=${encodeURIComponent(c.slug)}`;
       const thumb = c.certificate_image
         ? `<img src="${escAttr(c.certificate_image)}" alt="${escAttr(c.certificate_alt || c.title)}" loading="lazy" />`
-        : `<span>${esc((c.provider || c.title).toUpperCase())}</span>`;
-      const skills = (c.skills || "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 3)
-        .map((s) => `<span class="tag">${esc(s)}</span>`).join("");
+        : `<span>${esc((c.provider || c.title).slice(0, 12).toUpperCase())}</span>`;
       return `
-      <article class="course-card">
-        <a class="cc-thumb" href="${href}" aria-label="${escAttr(c.title)}">${thumb}</a>
-        <div class="cc-body">
-          <div class="wp-meta">${c.provider ? `<span class="wp-cat">${esc(c.provider)}</span>` : ""}${c.completion_date ? `<span class="wp-date">${esc(formatDate(c.completion_date))}</span>` : ""}</div>
+      <article class="cert-card">
+        <a class="cert-thumb" href="${href}" aria-label="${escAttr(c.title)}">${thumb}</a>
+        <div>
           <h3><a href="${href}">${esc(c.title)}</a></h3>
+          ${c.provider || c.completion_date
+            ? `<p class="cert-org">${esc(c.provider)}${c.completion_date ? ` · ${esc(formatDate(c.completion_date))}` : ""}</p>`
+            : ""}
           <p>${esc(c.short_description)}</p>
-          <div class="wp-tags">${skills}</div>
         </div>
       </article>`;
     })
     .join("");
-  if (isAdmin) $("courses-preview-edit").innerHTML = editChip("admin.html#courses", true);
+  if (isAdmin) $("courses-preview-edit").innerHTML = editChip("admin.html#courses");
 }
 
+/* -- Contact ------------------------------------------------------------ */
+function renderContact(contact, profile, socialLinks, isAdmin) {
+  $("contact-heading").innerHTML = `${esc(contact.heading)} ${isAdmin ? editChip("admin.html#contact") : ""}`;
+  $("contact-desc").textContent = contact.description || "";
+
+  const linkedin = socialLinks.find((l) => l.platform === "linkedin");
+  const facts = [
+    ["Email", contact.public_email || profile.email, (v) => `mailto:${v}`],
+    ["Phone", profile.phone, (v) => `tel:${v.replace(/\s+/g, "")}`],
+    ["Location", profile.location, null],
+    // Show the handle rather than the word "LinkedIn" twice — the key column
+    // already names the network.
+    ["LinkedIn", linkedin ? linkedin.url.replace(/^https?:\/\/(www\.)?(linkedin\.com\/)?/, "").replace(/\/$/, "") : null,
+      () => linkedin.url],
+  ].filter(([, v]) => v);
+
+  $("contact-facts").innerHTML = facts
+    .map(([k, v, href]) => {
+      const value = href
+        ? `<a class="v" href="${safeUrl(href(v))}" ${String(href(v)).startsWith("http") ? 'target="_blank" rel="noopener"' : ""}>${esc(v)}</a>`
+        : `<span class="v">${esc(v)}</span>`;
+      return `<div class="row"><span class="k">${esc(k)}</span>${value}</div>`;
+    })
+    .join("");
+}
+
+/* -- Footer ------------------------------------------------------------- */
+function renderFooter(profile, settings, socialLinks) {
+  $("foot-name").textContent = profile.full_name || settings.site_title || "";
+  $("foot-meta").textContent =
+    `© ${new Date().getFullYear()}${profile.headline_role ? ` · ${profile.headline_role}` : ""}`;
+  $("socials").innerHTML = socialLinks
+    .map(
+      (l) => `<a class="social-link" href="${safeUrl(l.url)}" ${l.url.startsWith("mailto:") ? "" : 'target="_blank" rel="noopener"'} aria-label="${escAttr(l.label || l.platform)}">${icon(socialIconName(l.platform))}</a>`
+    )
+    .join("");
+}
+
+/* -------------------------------------------------------------------------
+   Chrome + boot
+   ---------------------------------------------------------------------- */
 function setupNav() {
   const toggle = $("nav-toggle");
   const mobile = $("nav-mobile");
@@ -316,6 +401,24 @@ function setupNav() {
       toggle.setAttribute("aria-expanded", "false");
     })
   );
+
+  // Highlight the section currently in view, the way the design does.
+  const links = [...document.querySelectorAll('.nav-links a[href^="#"]')];
+  const targets = links
+    .map((a) => ({ a, el: document.querySelector(a.getAttribute("href")) }))
+    .filter((t) => t.el);
+  if (!targets.length || !("IntersectionObserver" in window)) return;
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const hit = targets.find((t) => t.el === e.target);
+        links.forEach((a) => a.classList.toggle("active", a === (hit && hit.a)));
+      }
+    },
+    { rootMargin: "-45% 0px -50% 0px" }
+  );
+  targets.forEach((t) => io.observe(t.el));
 }
 
 /** Reveal the page by fading out the first-load overlay. Safe to call twice. */

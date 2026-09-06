@@ -218,16 +218,10 @@ const CLIENT_DOMAINS = {
 // Exact logo files bundled in the repo (site-root-absolute paths), used in
 // preference to the favicon service for crisp, correct logos. Add more here as
 // you collect them (or upload per-project via the admin Client logo field).
-const CLIENT_LOGOS = {
-  "al borg diagnostics": 
-  "redsea mall"
-  "red sea mall"
-  "elite auto distribution jaecoo and omoda": 
-  "jaecoo and omoda":
-  "omoda": 
-  "jaecoo": 
-  "bestune": 
-};
+// Format: "client name": "/logos/file.svg". Empty until logo files are added
+// to the repo — every client falls back to the favicon service below, and then
+// to a plain name badge, so nothing breaks while this is empty.
+const CLIENT_LOGOS = {};
 
 /**
  * Logo image URL for a known client: a bundled logo file if we have one, else

@@ -82,7 +82,16 @@ export async function initChrome(active) {
   if (cv && profile.cv_url) {
     cv.href = safeUrl(profile.cv_url);
     cv.hidden = false;
-    cv.innerHTML = `Download CV ${icon("download")}`;
+    cv.innerHTML = `CV ${icon("download")}`;
+  }
+
+  // Footer identity line — same shape as the homepage footer.
+  const footName = $("foot-name");
+  if (footName) footName.textContent = profile.full_name || settings.site_title || "";
+  const footMeta = $("foot-meta");
+  if (footMeta) {
+    footMeta.textContent =
+      `© ${new Date().getFullYear()}${profile.headline_role ? ` · ${profile.headline_role}` : ""}`;
   }
 
   const socialsHost = $("socials");

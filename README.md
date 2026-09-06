@@ -35,6 +35,7 @@ sign-up anywhere.**
 │   ├── supabaseClient.js   # creates the Supabase client, admin check
 │   ├── fallback.js         # built-in demo content (shown before setup)
 │   ├── helpers.js          # escaping, icons, formatting, slugify
+│   ├── artwork.js          # generated SVG project artwork (no image required)
 │   ├── chrome.js           # shared navbar/footer + routing helpers (work/courses)
 │   ├── site.js             # renders the public homepage
 │   ├── work.js             # "My Work" client router + views
@@ -55,6 +56,29 @@ sign-up anywhere.**
     ├── seed.sql                     # initial content (projects, skills, …)
     └── seed_work_courses.sql        # demo course categories + Anthropic courses
 ```
+
+## Design system
+
+The public site and the dashboard share one system, ported from the Figma
+file. It lives in the `:root` blocks of `css/styles.css` and `css/admin.css` —
+change it there and both surfaces follow.
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `--ground` / `--ground-2` / `--ground-3` | `#010203` / `#080a0d` / `#11151a` | page, section and panel grounds |
+| `--line` | `#414741` | every hairline rule, border and diagram stroke |
+| `--border` | `#4b6582` | input and control borders |
+| `--text` / `--muted` | `#f4f7fa` / `#8ca5c1` | body copy and secondary copy |
+| `--accent` / `--accent-light` | `#57a2ff` / `#8bc3ff` | the single emphasis colour |
+| `--font-display` | Encode Sans | headings, figures, names |
+| `--font-mono` | DM Mono | every label, eyebrow, button and metric caption |
+
+Rules of the system: square corners, hairlines instead of shadows, one accent
+colour, and mono uppercase for anything that labels rather than reads.
+
+Projects without a cover image are drawn rather than left blank —
+`js/artwork.js` renders one of five SVG diagrams, picked deterministically from
+the project slug so the same project always gets the same drawing on every page.
 
 ## What's included in the "My Work" + "Courses" update
 

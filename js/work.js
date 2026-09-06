@@ -6,6 +6,7 @@ import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import { esc, escAttr, safeUrl, formatDate, icon, slugify, companyLogo, companyLogoFallback } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
+import { artworkFor } from "./artwork.js";
 
 const BASE = "work";
 const app = () => document.getElementById("work-app");
@@ -116,9 +117,10 @@ function breadcrumb(items) {
 function projectCard(p) {
   const cat = p.cats[0];
   const route = cat ? `${BASE}/${cat.slug}/${p.slug}` : `${BASE}/all/${p.slug}`;
+  // No cover image? Draw the generated diagram rather than an empty box.
   const thumb = p.cover_image
     ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" loading="lazy" />`
-    : `<span>${esc(p.title)}</span>`;
+    : `<span class="art">${artworkFor(p.slug || p.title)}</span>`;
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
   const clientLogoUrl = p.client_name ? (p.client_logo || companyLogo(p.client_name)) : "";
   const clientMark = clientLogoUrl
@@ -337,7 +339,7 @@ function viewProject(catSlug, projSlug) {
   transition(`
     ${breadcrumb([{ label: "My Work", route: BASE }, { label: cat ? cat.name : "Project", route: cat ? `${BASE}/${cat.slug}` : null }, { label: p.title }])}
     <article class="project-detail">
-      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" />` : `<span>${esc(p.title)}</span>`}</div>
+      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" />` : `<span class="art">${artworkFor(p.slug || p.title)}</span>`}</div>
       <header class="pd-head">
         <div class="pd-cats">${p.cats.map((c) => `<a class="tag" data-route="${BASE}/${c.slug}" href="${escAttr(rootHref(`${BASE}/${c.slug}`))}">${esc(c.name)}</a>`).join("")}</div>
         <h1>${esc(p.title)}</h1>
