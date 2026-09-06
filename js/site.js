@@ -152,8 +152,11 @@ function renderHero(hero, profile, experiences, projects, courses, certificates,
   const techCount = new Set(
     projects.flatMap((p) => (p.technologies || []).map((t) => (typeof t === "string" ? t : t.name)))
   ).size;
+  // A duration only works as a stat when it reads like a figure ("Six weeks",
+  // "1.5 Months"). A full date range would run over three lines at 36px.
+  const duration = exp && exp.duration_label && exp.duration_label.length <= 14 ? exp.duration_label : null;
   const stats = [
-    exp && exp.duration_label && { n: exp.duration_label, l: "Of experience" },
+    duration && { n: duration, l: "Of experience" },
     projects.length && { n: String(projects.length), l: projects.length === 1 ? "Project" : "Projects" },
     (techCount || skills.length) && { n: String(techCount || skills.length), l: "Tools & tech" },
     (courses.length + certificates.length) && {

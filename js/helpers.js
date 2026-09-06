@@ -92,6 +92,9 @@ const STROKE_ICONS = {
   arrow: '<path d="M3 12h18m0 0l-7-7m7 7l-7 7"/>',
   external: '<path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>',
   heart: '<path d="M4.3 12.5a5 5 0 017.1-7.1l.6.6.6-.6a5 5 0 117.1 7.1L12 20.2l-7.7-7.7z"/>',
+  database: '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/>',
+  code: '<path d="M9 18l-6-6 6-6m6 12l6-6-6-6"/>',
+  check: '<path d="M4 12.5l5 5L20 6.5"/>',
 };
 
 const FILL_ICONS = {
@@ -101,6 +104,7 @@ const FILL_ICONS = {
 
 export const ICON_CHOICES = [
   "document", "globe", "monitor", "wordpress", "figma", "brain", "chat", "pulse", "sparkles",
+  "database", "code", "check", "download", "calendar",
 ];
 
 /** Returns an <svg> string for the named icon. */

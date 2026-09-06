@@ -1,35 +1,39 @@
 // Built-in demo content. Shown on the public site only while Supabase is not
 // configured yet, so you can preview the design immediately. Once your keys
 // are in config.js, everything comes from the database instead.
+//
+// This mirrors the content in the Figma design so the demo and the live site
+// describe the same person. To change the live site, edit it in the admin
+// dashboard (or run supabase/seed_profile.sql once) — not here.
 
 export const FALLBACK = {
   settings: {
-    site_title: "Aqsa Arif — Co-op Intern | Technology",
+    site_title: "Mohammed Aljohani — Information Systems",
     meta_description:
-      "Portfolio of Aqsa Arif, Co-op Intern at KORASpond — turning ideas into impactful solutions.",
+      "Portfolio of Mohammed Aljohani, Information Systems student at Taibah University — six weeks of cooperative training at KoraSpond, a digital agency.",
   },
   profile: {
-    full_name: "Aqsa Arif",
-    headline_role: "Co-op Intern | Technology",
+    full_name: "Mohammed Aljohani",
+    headline_role: "Information Systems — Taibah University",
     about:
-      "Co-op Intern at KORASpond — 1.5 months of learning, building, and contributing to real-world projects.",
-    email: "hello@example.com",
+      "Information Systems student at Taibah University, fresh from six weeks of co-op training in a digital agency. Open to internships, graduate roles and collaborative projects.",
+    email: "",              // ← your public email address
     phone: null,
-    location: null,
-    linkedin_url: "https://www.linkedin.com/",
+    location: "Al Madinah, Saudi Arabia",
+    linkedin_url: "https://www.linkedin.com/in/mohammed-aljohani",
     cv_url: null,
     avatar_url: null,
   },
   hero: {
-    eyebrow: "PORTFOLIO",
-    headline: "Turning Ideas into",
-    highlighted_text: "Impactful Solutions.",
+    eyebrow: "Information Systems — Taibah University",
+    headline: "I build systems — then I try to",
+    highlighted_text: "break them.",
     description:
-      "Co-op Intern at KORASpond  1.5 months of learning, building, and contributing to real-world projects.",
-    primary_label: "View My Work",
-    primary_url: "#projects",
+      "Six weeks of cooperative training at KoraSpond, a digital agency: a site-health scanner taken from database schema to live dashboard, an eleven-page bilingual brand site, and QA passes that caught what shipped in the wrong language.",
+    primary_label: "View Work",
+    primary_url: "#work",
     primary_visible: true,
-    secondary_label: "Contact Me",
+    secondary_label: "Get in touch",
     secondary_url: "#contact",
     secondary_visible: true,
     background_image: null,
@@ -37,59 +41,108 @@ export const FALLBACK = {
   experiences: [
     {
       id: "exp-koraspond",
-      company: "KORASpond",
-      role: "Co-op Intern",
-      department: "Technology Department",
-      employment_type: "Co-op Internship",
-      duration_label: "1.5 Months",
+      company: "KoraSpond",
+      role: "Co-op Trainee",
+      department: "Digital Agency",
+      employment_type: "Cooperative Training (IS 490)",
+      duration_label: "Jun 21 — Jul 30, 2026 · Six weeks",
       logo_url: null,
       description:
-        "During my internship, I worked on diverse projects and tasks that strengthened my technical, design, and problem-solving skills.",
+        "Cooperative training across four live projects: built a site-health scanner from schema to dashboard, developed an eleven-page bilingual brand site from Figma, ran a full manual QA audit in two languages, and delivered a content-gap analysis for an annual-report microsite. Moved between development, testing and content analysis inside the same six weeks.",
       items: [
-        { title: "RFP Vendor Responses", description: "Prepared RFP vendor responses for multiple clients with clear, structured and professional content.", icon: "document" },
-        { title: "Website Translation", description: "Translated websites to support multi-language accessibility using professional localization practices.", icon: "globe" },
-        { title: "Website Design", description: "Designed responsive and modern websites that are user-friendly and aligned with client needs.", icon: "monitor" },
-        { title: "Using WordPress", description: "Built and customized websites using WordPress including themes, plugins and page builders.", icon: "wordpress" },
-        { title: "Figma Design", description: "Created UI/UX designs, wireframes and prototypes using Figma.", icon: "figma" },
-        { title: "AI Tools", description: "Leveraged Claude and ChatGPT AI tools to improve productivity, generate content and solve problems.", icon: "brain" },
-        { title: "Chatbot Kiosk", description: "Designed a kiosk interface integrated with a chatbot for better user interaction and assistance.", icon: "chat" },
-        { title: "Website Health Crawler", description: "Built a website to crawl other websites and monitor their health, status and performance.", icon: "pulse" },
-        { title: "Anthropic Academy", description: "Completed courses from Anthropic Academy on AI safety, prompt engineering and responsible AI usage.", icon: "sparkles" },
+        { title: "Functional Analysis", description: "Defined the SEO, page-speed, broken-link and security criteria for the site-health scanner before any code was written.", icon: "document" },
+        { title: "Database Design", description: "Designed the MySQL schema behind the scanner: crawl jobs, crawled pages, issues, links and security headers.", icon: "database" },
+        { title: "API Endpoints", description: "Built the endpoints that start a crawl, report its status while it runs, and return the finished results.", icon: "code" },
+        { title: "Live Dashboard", description: "Built the dashboard that polls those endpoints and updates the health score live as pages are scanned.", icon: "monitor" },
+        { title: "PDF & CSV Export", description: "Wired up report export plus AI-written recommendations, with template-based fallbacks when no API key is configured.", icon: "download" },
+        { title: "Front-end from Figma", description: "Translated finished Figma frames into HTML, CSS and JavaScript, section by section, across eleven pages.", icon: "figma" },
+        { title: "Bilingual Layout", description: "Adjusted layouts so Arabic and English content both sat correctly without breaking the grid.", icon: "globe" },
+        { title: "Manual QA", description: "Walked every link, button and interactive element of a live client site — twice, once fully per language.", icon: "check" },
+        { title: "Content Gap Analysis", description: "Compared a published microsite against its approved source line by line and logged every gap in a tracking sheet.", icon: "sparkles" },
       ],
+    },
+    {
+      id: "exp-taibah",
+      company: "Taibah University",
+      role: "B.Sc. Information Systems",
+      department: "Supervised by Dr. Omair Bakhsh",
+      employment_type: "Degree",
+      duration_label: "In progress",
+      logo_url: null,
+      description:
+        "Coursework applied directly during training: Systems Analysis & Design (requirements analysis), Database Systems (MySQL schema design), Web Engineering (front-end and back-end development), and Information Security (CSP, HSTS and X-Frame-Options inspection).",
+      items: [],
     },
   ],
   projects: [
-    { title: "RFP Vendor Response", short_description: "Created comprehensive RFP responses for various clients addressing technical and business requirements.", technologies: ["Documentation"], cover_image: null, project_url: null },
-    { title: "Website Translation", short_description: "Translated and localized websites to reach global audiences and improve accessibility.", technologies: ["Localization"], cover_image: null, project_url: null },
-    { title: "Website Design (WordPress)", short_description: "Designed and developed responsive websites using WordPress with custom themes and plugins.", technologies: ["WordPress", "Design"], cover_image: null, project_url: null },
-    { title: "Chatbot Kiosk", short_description: "Designed an interactive kiosk integrated with a chatbot to enhance user experience.", technologies: ["UI/UX", "Chatbot"], cover_image: null, project_url: null },
-  ],
-  skills: [
-    "WordPress", "Figma", "Claude", "ChatGPT", "HTML", "CSS", "JavaScript",
-    "PHP", "Website Localization", "RFP Documentation", "UI/UX Design",
-    "Prompt Engineering",
-  ].map((name) => ({ name, icon_url: null })),
-  certificates: [
     {
-      title: "Anthropic Academy",
-      organization: "Anthropic",
-      issue_date: null,
-      description: "Completed courses to enhance AI safety, prompt engineering and responsible AI usage.",
-      image_url: null,
-      verify_url: null,
-      file_url: null,
+      title: "Website Health Monitor",
+      slug: "website-health-monitor",
+      short_description:
+        "A crawler that scores any website across broken links, SEO, security headers and page speed — then explains how to fix it.",
+      project_type: "Full-stack Tool",
+      project_date: "2026-07-10",
+      technologies: ["PHP 8", "MySQL", "JavaScript", "Dompdf", "Guzzle", "Symfony DomCrawler", "Gemini API"],
+      cover_image: null,
+      project_url: null,
+    },
+    {
+      title: "Bilingual Brand Website",
+      slug: "bilingual-brand-website",
+      short_description:
+        "Eleven pages for a national fuel-station and vehicle-services brand, built from Figma and shipped in two languages.",
+      project_type: "Front-end Development",
+      project_date: "2026-07-05",
+      technologies: ["HTML5", "CSS3", "JavaScript", "Figma"],
+      cover_image: null,
+      project_url: null,
+    },
+    {
+      title: "Bilingual QA Audit",
+      slug: "bilingual-qa-audit",
+      short_description:
+        "A full manual QA pass on an automotive showcase site — run twice, once per language. That is what caught the real bug.",
+      project_type: "Quality Assurance",
+      project_date: "2026-07-18",
+      technologies: ["Manual QA", "Microsoft Excel", "Browser DevTools"],
+      cover_image: null,
+      project_url: null,
+    },
+    {
+      title: "Content Gap Audit",
+      slug: "content-gap-audit",
+      short_description:
+        "Comparing a published annual-report microsite against its approved source, line by line, and documenting everything missing.",
+      project_type: "Content QA & Analysis",
+      project_date: "2026-07-28",
+      technologies: ["Microsoft Excel", "Microsoft PowerPoint", "Manual review"],
+      cover_image: null,
+      project_url: null,
     },
   ],
+  skillCategories: [
+    { id: "sc-dev", name: "Development", display_order: 1 },
+    { id: "sc-sys", name: "Systems & Analysis", display_order: 2 },
+    { id: "sc-tools", name: "Tools", display_order: 3 },
+  ],
+  skills: [
+    ...["PHP 8", "MySQL", "JavaScript", "HTML5", "CSS3"].map((name) => ({ name, category_id: "sc-dev", icon_url: null })),
+    ...["Requirements analysis", "Relational database design", "SEO auditing", "Security headers", "Manual QA testing"]
+      .map((name) => ({ name, category_id: "sc-sys", icon_url: null })),
+    ...["Figma", "XAMPP", "Composer (Dompdf, Guzzle, DomCrawler)", "Google Gemini API", "Microsoft Excel"]
+      .map((name) => ({ name, category_id: "sc-tools", icon_url: null })),
+  ],
+  certificates: [],
   socialLinks: [
-    { platform: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/" },
-    { platform: "github", label: "GitHub", url: "https://github.com/" },
-    { platform: "email", label: "Email", url: "mailto:hello@example.com" },
+    { platform: "linkedin", label: "LinkedIn", url: "https://www.linkedin.com/in/mohammed-aljohani" },
+    { platform: "github", label: "GitHub", url: "https://github.com/MoAljohani04" },
   ],
   contact: {
-    heading: "Let's connect and build something great together.",
-    description: "Thank you for visiting my portfolio! Send me a message and I'll get back to you.",
-    public_email: "hello@example.com",
-    success_message: "Thanks! Your message has been sent.",
+    heading: "Let's connect for opportunities.",
+    description:
+      "Information Systems student at Taibah University, fresh from six weeks of co-op training in a digital agency. Open to internships, graduate roles and collaborative projects.",
+    public_email: "",       // ← your public email address
+    success_message: "Message received. Thank you — I'll get back to you soon.",
     error_message: "Something went wrong. Please try again.",
   },
 };
