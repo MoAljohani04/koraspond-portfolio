@@ -258,29 +258,79 @@ export function initHeroParallax() {
 /* -------------------------------------------------------------------------
    Marquee
    ---------------------------------------------------------------------- */
+const MARQUEE_SPEED = 45;      // pixels per second, whatever the list length
+
 /**
- * Duplicate a marquee's track so the loop has no visible seam, and pace the
- * animation by track width so a long list and a short one scroll at the same
- * speed. Returns silently when there is nothing to scroll.
+ * Scroll a marquee band smoothly and for ever.
+ *
+ * The row holds the track twice and is moved by half its width, so one
+ * animation carries both copies and the seam cannot drift. It is driven
+ * through the Web Animations API rather than a CSS class for two reasons:
+ * `updatePlaybackRate` eases into the hover slow-down instead of freezing the
+ * row dead, and re-timing on resize can preserve the current position rather
+ * than jumping. A browser without `element.animate` falls back to the CSS
+ * animation, which does the same thing more bluntly.
  */
 export function initMarquee(band) {
   if (!band) return;
   const track = band.querySelector(".marquee-track");
   if (!track || track.dataset.marqueeBound) return;
   track.dataset.marqueeBound = "1";
-
   if (REDUCED_MOTION) return;                 // keep the single static row
+
+  // The row wrapper is in the markup, but build it if an older cached page
+  // put the track straight into the band.
+  let row = band.querySelector(".marquee-row");
+  if (!row) {
+    row = document.createElement("div");
+    row.className = "marquee-row";
+    track.parentElement.insertBefore(row, track);
+    row.appendChild(track);
+  }
+
   const clone = track.cloneNode(true);
   clone.setAttribute("aria-hidden", "true");
   clone.dataset.marqueeBound = "1";
-  track.parentElement.appendChild(clone);
+  row.appendChild(clone);
 
-  const pace = () => {
-    const width = track.scrollWidth;
-    if (!width) return;
-    band.style.setProperty("--marquee-duration", `${Math.max(18, width / 45).toFixed(1)}s`);
+  const durationFor = () => {
+    const width = track.getBoundingClientRect().width;
+    return width ? Math.max(18000, (width / MARQUEE_SPEED) * 1000) : 0;
   };
-  pace();
-  window.addEventListener("resize", pace, { passive: true });
-  band.classList.add("running");
+
+  if (typeof row.animate !== "function") {     // fallback: the CSS animation
+    const width = track.getBoundingClientRect().width;
+    if (width) band.style.setProperty("--marquee-duration", `${(width / MARQUEE_SPEED).toFixed(1)}s`);
+    band.classList.add("running");
+    return;
+  }
+
+  let duration = durationFor();
+  if (!duration) return;
+  const anim = row.animate(
+    [{ transform: "translate3d(0, 0, 0)" }, { transform: "translate3d(-50%, 0, 0)" }],
+    { duration, iterations: Infinity, easing: "linear" }
+  );
+
+  /** Re-time without moving the row: keep the fraction of the loop already
+   *  travelled, so a resize — or the web font finally arriving and changing
+   *  the row's width — never shows as a jump. */
+  const repace = () => {
+    const next = durationFor();
+    if (!next || Math.abs(next - duration) < duration * 0.02) return;
+    const progress = (Number(anim.currentTime) || 0) / duration;
+    anim.effect.updateTiming({ duration: next });
+    anim.currentTime = progress * next;
+    duration = next;
+  };
+
+  // The row is measured before the display font has loaded, so its width — and
+  // with it the correct speed — is not final until the font swaps in.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(repace).catch(() => {});
+  window.addEventListener("resize", repace, { passive: true });
+
+  // Ease down to a crawl under the pointer instead of stopping dead.
+  // `updatePlaybackRate` changes speed without resetting where the row is.
+  band.addEventListener("pointerenter", () => anim.updatePlaybackRate(0.12));
+  band.addEventListener("pointerleave", () => anim.updatePlaybackRate(1));
 }

@@ -934,26 +934,41 @@ em.hl, .grad { font-style: italic; color: var(--accent); }
 .js-motion [data-reveal]:not(.is-in) .art * { animation-play-state: paused; }
 
 /* -- Marquee band ---------------------------------------------------------
-   The toolkit, scrolling. Two identical tracks side by side and a translate
-   of exactly one track width, so the loop has no seam. */
+   The toolkit, scrolling. One row holds two identical tracks and is moved by
+   exactly half its own width, which lands the second track precisely where
+   the first began — a seam that cannot drift, because a single animation
+   moves both. (Animating each track separately lets sub-pixel width
+   differences and start-time skew show up as a stutter at the joint.) */
 .marquee-band {
   --marquee-duration: 32s;
   position: relative; overflow: hidden;
   padding: 22px 0;
   background: var(--ground-2);
   border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-  display: flex; width: 100%;
+  width: 100%;
   /* Fade the ends into the ground rather than cutting the row off. */
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-row {
+  display: flex; width: max-content;
+  /* Its own compositor layer, so scrolling the row never repaints the band. */
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
 }
 .marquee-track {
   display: flex; align-items: center; gap: 48px;
   flex: none; padding-right: 48px; white-space: nowrap;
 }
-.marquee-band.running .marquee-track { animation: marquee var(--marquee-duration) linear infinite; }
-.marquee-band.running:hover .marquee-track { animation-play-state: paused; }
-@keyframes marquee { to { transform: translateX(-100%); } }
+/* The script drives this with the Web Animations API so it can change speed
+   without restarting. This rule is the fallback for browsers that have no
+   `element.animate`. */
+.marquee-band.running .marquee-row { animation: marquee var(--marquee-duration) linear infinite; }
+.marquee-band.running:hover .marquee-row { animation-play-state: paused; }
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
 .marquee-item {
   display: inline-flex; align-items: center; gap: 10px;
   font-family: var(--font-mono); font-size: 12px;
