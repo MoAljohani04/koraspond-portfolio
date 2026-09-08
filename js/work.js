@@ -4,7 +4,7 @@
 // fallback so deep links work on any host.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
-import { esc, escAttr, safeUrl, formatDate, icon, slugify, industryLabel } from "./helpers.js";
+import { esc, escAttr, safeUrl, formatDate, icon, slugify, industryLabel, projectTitle } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
 import { artworkFor } from "./artwork.js";
 
@@ -125,20 +125,20 @@ function projectCard(p) {
   const route = cat ? `${BASE}/${cat.slug}/${p.slug}` : `${BASE}/all/${p.slug}`;
   // No cover image? Draw the generated diagram rather than an empty box.
   const thumb = p.cover_image
-    ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" loading="lazy" />`
+    ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || projectTitle(p.title))}" loading="lazy" />`
     : `<span class="art">${artworkFor(p)}</span>`;
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
   const industry = industryOf(p);
   return `
     <article class="wp-card">
-      <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(p.title)}">${thumb}</a>
+      <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(projectTitle(p.title))}">${thumb}</a>
       <div class="wp-body">
         <div class="wp-meta">
           ${p.featured ? `<span class="wp-flag">★ Featured</span>` : ""}
           ${cat ? `<span class="wp-cat">${esc(cat.name)}</span>` : ""}
           ${p.project_date ? `<span class="wp-date">${esc(formatDate(p.project_date))}</span>` : ""}
         </div>
-        <h3><a data-route="${route}" href="${escAttr(rootHref(route))}">${esc(p.title)}</a></h3>
+        <h3><a data-route="${route}" href="${escAttr(rootHref(route))}">${esc(projectTitle(p.title))}</a></h3>
         <p>${esc(p.short_description)}</p>
         ${p.project_type || industry ? `<div class="wp-sub">${p.project_type ? esc(p.project_type) : ""}${p.project_type && industry ? " · " : ""}${industry ? `Industry: ${esc(industry)}` : ""}</div>` : ""}
         <div class="wp-tags">${tools}</div>
@@ -238,7 +238,7 @@ function viewLanding(initialQuery) {
 }
 
 function searchProject(p, q) {
-  const hay = [p.title, p.short_description, p.project_type, industryOf(p), ...(p.tools || []), ...p.cats.map((c) => c.name)]
+  const hay = [projectTitle(p.title), p.short_description, p.project_type, industryOf(p), ...(p.tools || []), ...p.cats.map((c) => c.name)]
     .filter(Boolean).join(" ").toLowerCase();
   return hay.includes(q);
 }
@@ -352,12 +352,12 @@ function viewProject(catSlug, projSlug) {
     .map((im, i) => `<button class="pd-shot" data-shot="${i}"><img src="${escAttr(im.url)}" alt="${escAttr(im.alt)}" loading="lazy" /></button>`).join("")}</div>` : "";
 
   transition(`
-    ${breadcrumb([{ label: "My Work", route: BASE }, { label: cat ? cat.name : "Project", route: cat ? `${BASE}/${cat.slug}` : null }, { label: p.title }])}
+    ${breadcrumb([{ label: "My Work", route: BASE }, { label: cat ? cat.name : "Project", route: cat ? `${BASE}/${cat.slug}` : null }, { label: projectTitle(p.title) }])}
     <article class="project-detail">
-      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" />` : `<span class="art">${artworkFor(p)}</span>`}</div>
+      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || projectTitle(p.title))}" />` : `<span class="art">${artworkFor(p)}</span>`}</div>
       <header class="pd-head">
         <div class="pd-cats">${p.cats.map((c) => `<a class="tag" data-route="${BASE}/${c.slug}" href="${escAttr(rootHref(`${BASE}/${c.slug}`))}">${esc(c.name)}</a>`).join("")}</div>
-        <h1>${esc(p.title)}</h1>
+        <h1>${esc(projectTitle(p.title))}</h1>
         ${p.short_description ? `<p class="pd-lead">${esc(p.short_description)}</p>` : ""}
         ${links.length ? `<div class="pd-links">${links.map(([l, u]) => `<a class="btn btn-outline btn-sm" href="${safeUrl(u)}" target="_blank" rel="noopener">${esc(l)} ${icon("external")}</a>`).join("")}</div>` : ""}
       </header>

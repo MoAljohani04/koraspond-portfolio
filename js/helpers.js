@@ -231,3 +231,36 @@ export function industryLabel(value) {
   if (!raw) return "";
   return INDUSTRY_BY_NAME[raw.toLowerCase()] || raw;
 }
+
+// Company names that appear inside project titles. The public site presents
+// work by industry rather than by client branding, so these are stripped from
+// titles at render time. Each entry is the brand token only ("aramco", not
+// "aramco stations") so what remains of a title still describes the project;
+// they are applied longest-first, so "al borg diagnostics" is tried before
+// "al borg".
+const CLIENT_BRANDS = [
+  "al borg diagnostics", "al borg", "iciec", "redsea mall", "red sea mall",
+  "elite auto distribution", "aramco", "jaecoo", "omoda", "bestune",
+].sort((a, b) => b.length - a.length);
+
+const reEscape = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * A project title with the client's name taken out: "Al Borg WhatsApp Chatbot
+ * Solution" reads as "WhatsApp Chatbot Solution". Only a name at the start or
+ * the end is removed — one in the middle is load-bearing grammar ("Migrating
+ * Aramco to X") — and a title that would be left with no words is kept as it
+ * is. Titles already renamed in the CMS pass through untouched.
+ */
+export function projectTitle(title) {
+  let out = String(title || "").trim();
+  for (const brand of CLIENT_BRANDS) {
+    const b = reEscape(brand);
+    // The possessive is included so "Al Borg's Platform" loses the whole of it.
+    const lead = new RegExp(`^${b}(?:['\u2019]s)?\\b[\\s:\u2013\u2014-]*`, "i");
+    const trail = new RegExp(`[\\s:\u2013\u2014-]*\\b(?:for|by|at|with)?\\s*${b}(?:['\u2019]s)?\\s*$`, "i");
+    const stripped = out.replace(lead, "").replace(trail, "").trim();
+    if (/[a-z0-9]/i.test(stripped)) out = stripped;
+  }
+  return out.replace(/\s{2,}/g, " ").trim() || String(title || "").trim();
+}

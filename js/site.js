@@ -4,7 +4,7 @@
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
-  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify,
+  esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, projectTitle,
 } from "./helpers.js";
 import { artwork, projectVisual } from "./artwork.js";
 import { initContactForm } from "./contact.js";
@@ -196,14 +196,14 @@ function renderWork(projects, categories, catMap, isAdmin) {
       const year = p.project_date ? new Date(p.project_date).getFullYear() : "";
       const meta = [cat ? cat.name : p.project_type, year].filter(Boolean).join(" — ");
       return `
-      <a class="pcard${i === 0 ? " wide" : ""}" href="${href}" aria-label="${escAttr(p.title)}">
+      <a class="pcard${i === 0 ? " wide" : ""}" href="${href}" aria-label="${escAttr(projectTitle(p.title))}">
         <span class="pcard-art">${projectVisual(p)}</span>
         <span class="pcard-veil"></span>
         <span class="pcard-index">${String(i + 1).padStart(2, "0")}</span>
         <span class="pcard-body">
           <span>
             ${meta ? `<span class="pcard-meta">${esc(meta)}</span>` : ""}
-            <h3>${esc(p.title)}</h3>
+            <h3>${esc(projectTitle(p.title))}</h3>
             <span class="pcard-teaser">${esc(p.short_description)}</span>
           </span>
           <span class="pcard-go">
