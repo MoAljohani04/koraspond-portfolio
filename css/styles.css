@@ -934,13 +934,15 @@ em.hl, .grad { font-style: italic; color: var(--accent); }
 .js-motion [data-reveal]:not(.is-in) .art * { animation-play-state: paused; }
 
 /* -- Marquee band ---------------------------------------------------------
-   The toolkit, scrolling. One row holds two identical tracks and is moved by
-   exactly half its own width, which lands the second track precisely where
-   the first began — a seam that cannot drift, because a single animation
-   moves both. (Animating each track separately lets sub-pixel width
-   differences and start-time skew show up as a stutter at the joint.) */
+   The toolkit, scrolling. One row holds the track repeated as many times as
+   the viewport needs (js/motion.js counts the copies) and is moved by exactly
+   one track width, which lands the next copy precisely where the last began.
+   A single animation moves the whole row, so the seam cannot drift — animating
+   each track separately lets sub-pixel width differences and start-time skew
+   show up as a stutter at the joint. */
 .marquee-band {
   --marquee-duration: 32s;
+  --marquee-shift: -50%;
   position: relative; overflow: hidden;
   padding: 22px 0;
   background: var(--ground-2);
@@ -967,7 +969,7 @@ em.hl, .grad { font-style: italic; color: var(--accent); }
 .marquee-band.running:hover .marquee-row { animation-play-state: paused; }
 @keyframes marquee {
   from { transform: translate3d(0, 0, 0); }
-  to   { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(var(--marquee-shift, -50%), 0, 0); }
 }
 .marquee-item {
   display: inline-flex; align-items: center; gap: 10px;

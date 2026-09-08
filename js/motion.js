@@ -260,16 +260,25 @@ export function initHeroParallax() {
    ---------------------------------------------------------------------- */
 const MARQUEE_SPEED = 45;      // pixels per second, whatever the list length
 
+const MARQUEE_MAX_COPIES = 24;   // guard against a pathologically short list
+
 /**
- * Scroll a marquee band smoothly and for ever.
+ * Scroll a marquee band smoothly and endlessly.
  *
- * The row holds the track twice and is moved by half its width, so one
- * animation carries both copies and the seam cannot drift. It is driven
- * through the Web Animations API rather than a CSS class for two reasons:
- * `updatePlaybackRate` eases into the hover slow-down instead of freezing the
- * row dead, and re-timing on resize can preserve the current position rather
- * than jumping. A browser without `element.animate` falls back to the CSS
- * animation, which does the same thing more bluntly.
+ * The trick is that the row is shifted by exactly one track width and then
+ * restarts. For that to read as a continuous stream, the row must still cover
+ * the whole band at the moment the shift completes — which needs one track for
+ * the distance travelled *plus* a viewport's worth of track behind it. Two
+ * copies only satisfy that when a single track is wider than the screen; on a
+ * wider display the row runs out and the band shows empty space before it
+ * snaps back. So the track is repeated as many times as the viewport actually
+ * needs, and the shift stays exactly one track (100/copies of the row).
+ *
+ * It is driven through the Web Animations API rather than a CSS class for two
+ * reasons: `updatePlaybackRate` eases into the hover slow-down instead of
+ * freezing the row dead, and the row can be re-measured — on resize, or when
+ * the web font finally arrives — without jumping. A browser without
+ * `element.animate` falls back to the CSS animation.
  */
 export function initMarquee(band) {
   if (!band) return;
@@ -288,46 +297,93 @@ export function initMarquee(band) {
     row.appendChild(track);
   }
 
-  const clone = track.cloneNode(true);
-  clone.setAttribute("aria-hidden", "true");
-  clone.dataset.marqueeBound = "1";
-  row.appendChild(clone);
+  const trackWidth = () => track.getBoundingClientRect().width;
+  let copies = 1;
 
-  const durationFor = () => {
-    const width = track.getBoundingClientRect().width;
-    return width ? Math.max(18000, (width / MARQUEE_SPEED) * 1000) : 0;
+  // Copies are cut from a snapshot taken now, not from the live track, so a
+  // copy added later is identical to one added at startup no matter what has
+  // happened to the original in between. Every track must stay exactly the
+  // same width: the loop shifts by one track, so a track that differs by even
+  // a few pixels shows as a jolt once per cycle.
+  const template = track.cloneNode(true);
+  template.setAttribute("aria-hidden", "true");    // one row for a screen reader, not many
+  template.removeAttribute("id");
+  template.dataset.marqueeBound = "1";
+
+  /** Repeat the track until the row is long enough that the band is still
+   *  full at the end of a cycle. Returns true when copies were added. */
+  const fill = () => {
+    const width = trackWidth();
+    if (!width) return false;
+    // Measured from the band, which is what has to stay covered — not the
+    // window, which can differ from it.
+    const visible = band.getBoundingClientRect().width || window.innerWidth;
+    const needed = Math.min(
+      MARQUEE_MAX_COPIES,
+      Math.max(2, Math.ceil(visible / width) + 1)
+    );
+    if (copies >= needed) return false;
+    const batch = document.createDocumentFragment();
+    for (; copies < needed; copies++) batch.appendChild(template.cloneNode(true));
+    row.appendChild(batch);
+    return true;
   };
 
+  // One track's travel, at a constant speed however long the list is.
+  const durationFor = () => {
+    const width = trackWidth();
+    return width ? Math.max(18000, (width / MARQUEE_SPEED) * 1000) : 0;
+  };
+  // The shift is one track expressed as a share of the whole row, so it stays
+  // correct as copies are added.
+  const shift = () => `-${(100 / copies).toFixed(6)}%`;
+
+  fill();
+
   if (typeof row.animate !== "function") {     // fallback: the CSS animation
-    const width = track.getBoundingClientRect().width;
+    const width = trackWidth();
     if (width) band.style.setProperty("--marquee-duration", `${(width / MARQUEE_SPEED).toFixed(1)}s`);
+    band.style.setProperty("--marquee-shift", shift());
     band.classList.add("running");
     return;
   }
 
   let duration = durationFor();
   if (!duration) return;
-  const anim = row.animate(
-    [{ transform: "translate3d(0, 0, 0)" }, { transform: "translate3d(-50%, 0, 0)" }],
-    { duration, iterations: Infinity, easing: "linear" }
-  );
+  const frames = () => [
+    { transform: "translate3d(0, 0, 0)" },
+    { transform: `translate3d(${shift()}, 0, 0)` },
+  ];
+  const anim = row.animate(frames(), { duration, iterations: Infinity, easing: "linear" });
 
-  /** Re-time without moving the row: keep the fraction of the loop already
-   *  travelled, so a resize — or the web font finally arriving and changing
-   *  the row's width — never shows as a jump. */
-  const repace = () => {
+  /** Re-measure without moving the row. A cycle always covers exactly one
+   *  track, so the fraction already travelled means the same thing before and
+   *  after — keeping it is what stops a resize or a late font from showing as
+   *  a jump. */
+  const remeasure = () => {
+    const grew = fill();
     const next = durationFor();
-    if (!next || Math.abs(next - duration) < duration * 0.02) return;
+    const retime = next && Math.abs(next - duration) > duration * 0.02;
+    if (!grew && !retime) return;
     const progress = (Number(anim.currentTime) || 0) / duration;
-    anim.effect.updateTiming({ duration: next });
-    anim.currentTime = progress * next;
-    duration = next;
+    if (grew) anim.effect.setKeyframes(frames());
+    if (retime) {
+      anim.effect.updateTiming({ duration: next });
+      duration = next;
+    }
+    anim.currentTime = progress * duration;
   };
 
-  // The row is measured before the display font has loaded, so its width — and
-  // with it the correct speed — is not final until the font swaps in.
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(repace).catch(() => {});
-  window.addEventListener("resize", repace, { passive: true });
+  // The row is measured before the display font has arrived, so neither the
+  // number of copies nor the speed is final until it swaps in.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure).catch(() => {});
+  // Watching the band catches everything that changes how much has to be
+  // covered — a zoom, a scrollbar appearing, a layout shift — including the
+  // cases that never fire a window resize event. Both are registered rather
+  // than one or the other: `remeasure` does nothing when nothing has changed,
+  // so whichever fires first simply wins.
+  if (typeof ResizeObserver === "function") new ResizeObserver(remeasure).observe(band);
+  window.addEventListener("resize", remeasure, { passive: true });
 
   // Ease down to a crawl under the pointer instead of stopping dead.
   // `updatePlaybackRate` changes speed without resetting where the row is.

@@ -291,7 +291,15 @@ function renderToolkit(projects, skills) {
   if (items.length < 4) return;           // too few to read as a band
 
   track.innerHTML = items
-    .map((n) => `<span class="marquee-item has-logo" data-logo-host>${logoImg(n)}${esc(n)}</span>`)
+    // The band's logos hide on failure rather than removing themselves, which
+    // the other lists do. The marquee is built by cloning this track, and a
+    // clone whose image disappears is narrower than its siblings — the loop
+    // shifts by exactly one track width, so tracks of different widths would
+    // misalign and jolt once per cycle. Keeping the box makes every copy
+    // identical whatever the network does.
+    .map((n) => `<span class="marquee-item has-logo">
+      <img src="${escAttr(techLogo(n))}" alt="" loading="lazy" decoding="async"
+        onerror="this.style.visibility='hidden'" />${esc(n)}</span>`)
     .join("");
   band.hidden = false;
 }
