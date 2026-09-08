@@ -26,7 +26,8 @@ sign-up anywhere.**
 ├── admin.html              # admin login + dashboard (one page)
 ├── .htaccess               # Apache/XAMPP clean-URL rewrites for /work and /courses
 ├── _redirects              # Netlify / Cloudflare Pages clean-URL rewrites
-├── vercel.json             # Vercel clean-URL rewrites
+├── vercel.json             # Vercel rewrites, security headers, caching
+├── .vercelignore           # files kept out of the Vercel deployment
 ├── css/
 │   ├── styles.css          # public site styles (+ Work/Courses components)
 │   └── admin.css           # dashboard styles
@@ -35,7 +36,8 @@ sign-up anywhere.**
 │   ├── supabaseClient.js   # creates the Supabase client, admin check
 │   ├── fallback.js         # built-in demo content (shown before setup)
 │   ├── helpers.js          # escaping, icons, formatting, slugify
-│   ├── artwork.js          # generated SVG project artwork (no image required)
+│   ├── artwork.js          # generated SVG project artwork, matched to the subject
+│   ├── motion.js           # scroll reveals, pointer response, marquee
 │   ├── chrome.js           # shared navbar/footer + routing helpers (work/courses)
 │   ├── site.js             # renders the public homepage
 │   ├── work.js             # "My Work" client router + views
@@ -77,8 +79,15 @@ Rules of the system: square corners, hairlines instead of shadows, one accent
 colour, and mono uppercase for anything that labels rather than reads.
 
 Projects without a cover image are drawn rather than left blank —
-`js/artwork.js` renders one of five SVG diagrams, picked deterministically from
-the project slug so the same project always gets the same drawing on every page.
+`js/artwork.js` renders an SVG diagram chosen from the project's own subject
+(its title, type, categories and tools), so a chatbot proposal gets a
+conversation thread and a translation job gets the EN/AR columns. A project
+matching nothing keeps a stable drawing picked from a hash of its text.
+
+`js/motion.js` adds the movement: scroll reveals, pointer-tracked cards, the
+counting stats and the toolkit marquee. All of it is layered on top of a page
+that already renders without it — the reveal styles apply only under a
+`js-motion` class the script adds, and reduced motion turns the lot off.
 
 ## What's included in the "My Work" + "Courses" update
 
@@ -189,29 +198,63 @@ also snapshots a revision (kept in `content_revisions`) for recovery.
 
 ## Deployment
 
-It’s just static files — host them anywhere:
+It's just static files — no build step, no server.
 
-- **Netlify / Cloudflare Pages:** drag the whole folder onto their dashboard.
-  The included `_redirects` file enables the clean `/work/…` and `/courses/…`
-  URLs.
-- **GitHub Pages:** push the folder to a repo and enable Pages.
-- **Vercel:** import the repo as a static project (no framework preset). The
-  included `vercel.json` enables the clean URLs.
-- **XAMPP / Apache:** the included `.htaccess` enables the clean URLs (needs
-  `mod_rewrite` + `AllowOverride All`, both on by default in XAMPP).
+### Vercel + a custom domain (the live setup)
+
+1. **Import the repo** at [vercel.com/new](https://vercel.com/new). Framework
+   preset: **Other**. Leave the build command empty and the output directory as
+   the repository root — there is nothing to compile.
+2. **Deploy.** The included `vercel.json` supplies the clean-URL rewrites and
+   the security headers; `.vercelignore` keeps docs, migrations and local
+   tooling out of the deployment.
+3. **Add the domain** under *Project → Settings → Domains*. Vercel then shows
+   the exact DNS records to create — use the values it prints, not the ones in
+   any guide, because they differ per project and change over time.
+4. **Point the domain at them** in Namecheap: *Domain List → Manage → Advanced
+   DNS*. Delete the two records Namecheap adds by default (a `CNAME` for `www`
+   to `parkingpage.cash…` and a `URL Redirect` on `@`) — they will otherwise
+   keep overriding yours — then add what Vercel showed:
+   - the apex, `@`, as an **A Record**
+   - `www` as a **CNAME Record**
+
+   Nameservers must stay on **Namecheap BasicDNS** for Advanced DNS to apply.
+   Propagation is usually minutes; Vercel issues the HTTPS certificate itself
+   once the records resolve.
+5. **Tell Supabase about the new address**: *Authentication → URL Configuration*
+   → set **Site URL** to the live domain and add it under **Redirect URLs**, or
+   the admin password-reset link will send people to the wrong host.
+
+Every push to `main` redeploys automatically.
+
+### Other hosts
+
+The same files run anywhere:
+
+- **Netlify / Cloudflare Pages:** `_redirects` supplies the clean URLs.
+- **Render:** `render.yaml` is a ready Blueprint.
+- **GitHub Pages:** push and enable Pages.
+- **XAMPP / Apache:** `.htaccess` supplies the clean URLs (needs `mod_rewrite`
+  and `AllowOverride All`, both on by default in XAMPP).
 
 **Clean URLs** (`/work/<category>/<project>`, `/courses/<provider>/<course>`)
-work out of the box on the hosts above. On any host *without* a rewrite rule,
-navigation still works everywhere — the pages fall back to
-`work.html?c=…&p=…` style links — so nothing ever breaks.
+work out of the box on all of the above. On a host *without* rewrites,
+navigation still works — the pages fall back to `work.html?c=…&p=…` links — so
+nothing ever breaks.
 
-After deploying, in **Supabase → Authentication → URL Configuration** add your
-live URL so password-reset links work.
+### Two things to keep in step
+
+- **The `?v=` number** on `css/styles.css` and the page scripts is how
+  returning visitors are told to fetch a changed file. Bump it in all three
+  HTML pages whenever CSS or JS changes.
+- **The meta tags** at the top of each HTML page are what Google indexes and
+  what LinkedIn or WhatsApp show in a link preview — those crawlers do not run
+  JavaScript, so the CMS values never reach them. Edit the tags when the Site
+  settings change.
 
 > Your Supabase keys live in `js/config.js`, which is part of the deployed
-> files. That’s expected and safe for the anon key — RLS is what protects your
+> files. That's expected and safe for the anon key — RLS is what protects your
 > data.
-
 ---
 
 ## Security & testing

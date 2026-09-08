@@ -1,0 +1,24 @@
+# Files that are part of the project but not part of the site. Anything left
+# in the deployment is publicly fetchable by URL, so keep this to what the
+# pages actually load.
+
+# Docs and project notes
+README.md
+SECURITY.md
+
+# Database migrations and seed data — schema detail, nothing the browser loads.
+# (Row-Level Security is what protects the data; this is simply not public
+# information that needs serving.)
+supabase/
+
+# Local tooling
+scripts/
+.claude/
+
+# Config for other hosts, kept in the repo but meaningless on Vercel
+.htaccess
+_redirects
+render.yaml
+
+# Stray working file — a 1.5 MB screenshot nothing references
+faa0877b-18c1-465e-90bb-8110bcd60ec3.png
