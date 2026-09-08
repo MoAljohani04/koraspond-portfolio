@@ -403,7 +403,7 @@ function openProjectForm(_container, project, categories, reload) {
     <div class="grid2">
       ${fieldText({ label: "Project type", name: "project_type", value: project?.project_type || "", placeholder: "Web App, Branding…" })}
       ${fieldText({ label: "Technologies / tools", name: "technologies", value: (project?.technologies || []).map((t) => t.name).join(", "), hint: "Comma-separated." })}
-      ${fieldText({ label: "Client name", name: "client_name", value: project?.client_name || "" })}
+      ${fieldText({ label: "Industry", name: "client_name", value: project?.client_name || "", placeholder: "Healthcare, Automotive, Finance…", hint: "The sector this project was delivered for." })}
       ${fieldText({ label: "Project date", name: "project_date", type: "date", value: project?.project_date || "" })}
       ${fieldText({ label: "Duration", name: "duration_text", value: project?.duration_text || "", placeholder: "e.g. 3 weeks" })}
       ${fieldSelect({ label: "State", name: "project_state", value: project?.project_state || "completed", options: [
@@ -424,8 +424,7 @@ function openProjectForm(_container, project, categories, reload) {
     </div>
 
     <div id="up-cover"></div>
-    <div id="up-client-logo"></div>
-    ${toggle({ label: "Featured project", name: "featured", checked: !!project?.featured, hint: "Featured projects show as clickable client logos in the homepage “Featured Clients” grid." })}
+    ${toggle({ label: "Featured project", name: "featured", checked: !!project?.featured, hint: "Featured projects lead the Selected Work grid on the homepage." })}
     <div id="gallerybox"></div>
     <div><button class="btn btn-primary" type="submit">${project ? "Save project" : "Create project"}</button></div>
   </form>`;
@@ -434,9 +433,6 @@ function openProjectForm(_container, project, categories, reload) {
   box.querySelector('[data-x="close"]').onclick = () => { box.innerHTML = ""; };
   const cover = imageUpload(box.querySelector("#up-cover"),
     { label: "Cover image", folder: "projects", value: project?.cover_image || "" });
-  const clientLogo = imageUpload(box.querySelector("#up-client-logo"),
-    { label: "Client logo", folder: "projects", value: project?.client_logo || "",
-      hint: "Shown in the homepage “Featured Clients” grid. A transparent PNG or SVG works best." });
 
   if (project) {
     renderGallery(box.querySelector("#gallerybox"), project, reload);
@@ -455,8 +451,10 @@ function openProjectForm(_container, project, categories, reload) {
       objectives: v.objectives, role: v.role, duration_text: v.duration_text || null,
       challenges: v.challenges, outcome: v.outcome, project_type: v.project_type || null,
       cover_image: cover.getUrl() || null, cover_alt: v.cover_alt || "",
-      client_logo: clientLogo.getUrl() || null,
-      project_date: v.project_date || null, client_name: v.client_name || null,
+      project_date: v.project_date || null,
+      // `client_name` is the industry/sector column (kept under its original
+      // name so no database migration is needed).
+      client_name: v.client_name || null,
       project_url: v.project_url || null, behance_url: v.behance_url || null, github_url: v.github_url || null,
       project_state: v.project_state, featured: v.featured === "true",
     };

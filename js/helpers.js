@@ -200,54 +200,34 @@ export function techLogo(name) {
   return slug ? `https://cdn.simpleicons.org/${slug}` : "";
 }
 
-// ── Company logos for portfolio clients ─────────────────────────────────────
-// Best-known website domains for the clients shown on the site, used to auto-
-// render a real company logo (via Google's favicon service) on the Featured
-// Clients grid and the Work cards. An uploaded `client_logo` always wins; any
-// client not listed here falls back to a styled name badge. Correct or extend
-// these freely — the key is the lower-cased client name.
-const CLIENT_DOMAINS = {
-  "al borg diagnostics": "alborgdiagnostics.com",
-  "iciec": "iciec.isdb.org",
-  "elite auto distribution jaecoo and omoda": "omoda.com",
-  "jaecoo": "jaecoo.com",
-  "omoda": "omoda.com",
-  "bestune": "bestune.com.cn",
-  "aramco station": "aramco.com",
-  "aramco": "aramco.com",
-  "redsea mall": "redseamall.com",
-  "red sea mall": "redseamall.com",
+
+// ── Industries ──────────────────────────────────────────────────────────────
+// Projects are presented by the sector they were delivered for, not by client
+// branding. Existing records store a company name in the CMS's industry field,
+// so those known names are mapped to their sector here; anything else — and
+// every value typed into the admin "Industry" field from now on — is shown
+// exactly as entered. Keys are lower-cased.
+const INDUSTRY_BY_NAME = {
+  "al borg diagnostics": "Healthcare & Diagnostics",
+  "al borg": "Healthcare & Diagnostics",
+  "iciec": "Insurance & Trade Finance",
+  "aramco station": "Energy & Fuel Retail",
+  "aramco stations": "Energy & Fuel Retail",
+  "aramco": "Energy & Fuel Retail",
+  "redsea mall": "Retail & Shopping Malls",
+  "red sea mall": "Retail & Shopping Malls",
+  "elite auto distribution jaecoo and omoda": "Automotive",
+  "jaecoo": "Automotive",
+  "omoda": "Automotive",
+  "bestune": "Automotive",
 };
 
-// Exact logo files bundled in the repo (site-root-absolute paths), used in
-// preference to the favicon service for crisp, correct logos. Add more here as
-// you collect them (or upload per-project via the admin Client logo field).
-// Format: "client name": "/logos/file.svg". Empty until logo files are added
-// to the repo — every client falls back to the favicon service below, and then
-// to a plain name badge, so nothing breaks while this is empty.
-const CLIENT_LOGOS = {};
-
 /**
- * Logo image URL for a known client: a bundled logo file if we have one, else
- * the website favicon, else "" when the client isn't mapped. Pass an explicit
- * `domain` to override the favicon lookup. Callers should still render a
- * name-badge fallback and an `onerror` handler.
+ * The industry label for a stored value: the mapped sector when the value is a
+ * company name we know, otherwise the value itself, trimmed.
  */
-export function companyLogo(clientName, domain) {
-  const key = String(clientName || "").trim().toLowerCase();
-  if (CLIENT_LOGOS[key]) return CLIENT_LOGOS[key];
-  return companyLogoFallback(clientName, domain);
-}
-
-/**
- * Second-choice logo URL: always the favicon service, never a bundled file.
- * Callers wire this as the `onerror` retry for `companyLogo`, so a client that
- * is mapped to a bundled logo which hasn't been added yet (or fails to load)
- * degrades to its favicon before falling back to a plain name badge.
- */
-export function companyLogoFallback(clientName, domain) {
-  const key = String(clientName || "").trim().toLowerCase();
-  const d = domain || CLIENT_DOMAINS[key];
-  if (!d) return "";
-  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(d)}&sz=128`;
+export function industryLabel(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return INDUSTRY_BY_NAME[raw.toLowerCase()] || raw;
 }

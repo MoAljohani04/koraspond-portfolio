@@ -4,12 +4,17 @@
 // fallback so deep links work on any host.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
-import { esc, escAttr, safeUrl, formatDate, icon, slugify, companyLogo, companyLogoFallback } from "./helpers.js";
+import { esc, escAttr, safeUrl, formatDate, icon, slugify, industryLabel } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
 import { artworkFor } from "./artwork.js";
 
 const BASE = "work";
 const app = () => document.getElementById("work-app");
+
+/** The industry a project was delivered for. The CMS stores it in the existing
+ *  `client_name` column (kept so no data migration is needed); `industry` is
+ *  read first so the column can be renamed later without touching this code. */
+const industryOf = (p) => industryLabel(p.industry || p.client_name);
 let STATE = { categories: [], projects: [], byCat: new Map(), loaded: false, previewDrafts: false };
 
 // ── Data ────────────────────────────────────────────────────────────────────
@@ -71,8 +76,9 @@ async function route() {
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   if (catSlug && projSlug) return viewProject(catSlug, projSlug);
   if (catSlug) return viewCategory(catSlug);
-  const client = query.get("client");
-  if (client) return viewClient(client);
+  // ?client= is the old spelling of ?industry=, kept so shared links still work.
+  const industry = query.get("industry") || query.get("client");
+  if (industry) return viewIndustry(industry);
   return viewLanding(query.get("q") || "");
 }
 
@@ -120,14 +126,9 @@ function projectCard(p) {
   // No cover image? Draw the generated diagram rather than an empty box.
   const thumb = p.cover_image
     ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" loading="lazy" />`
-    : `<span class="art">${artworkFor(p.slug || p.title)}</span>`;
+    : `<span class="art">${artworkFor(p)}</span>`;
   const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
-  const clientLogoUrl = p.client_name ? (p.client_logo || companyLogo(p.client_name)) : "";
-  const clientMark = clientLogoUrl
-    ? `<img class="wp-client-logo" src="${escAttr(clientLogoUrl)}" alt="" loading="lazy"
-        data-fb="${escAttr(companyLogoFallback(p.client_name))}"
-        onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.remove()}" />`
-    : "";
+  const industry = industryOf(p);
   return `
     <article class="wp-card">
       <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(p.title)}">${thumb}</a>
@@ -139,7 +140,7 @@ function projectCard(p) {
         </div>
         <h3><a data-route="${route}" href="${escAttr(rootHref(route))}">${esc(p.title)}</a></h3>
         <p>${esc(p.short_description)}</p>
-        ${p.project_type || p.client_name ? `<div class="wp-sub">${p.project_type ? esc(p.project_type) : ""}${p.project_type && p.client_name ? " · " : ""}${p.client_name ? `${clientMark}Client: ${esc(p.client_name)}` : ""}</div>` : ""}
+        ${p.project_type || industry ? `<div class="wp-sub">${p.project_type ? esc(p.project_type) : ""}${p.project_type && industry ? " · " : ""}${industry ? `Industry: ${esc(industry)}` : ""}</div>` : ""}
         <div class="wp-tags">${tools}</div>
         <div class="wp-actions">
           <a class="btn btn-primary btn-sm" data-route="${route}" href="${escAttr(rootHref(route))}">View Project ${icon("arrow")}</a>
@@ -170,6 +171,25 @@ function viewLanding(initialQuery) {
 
   const featured = STATE.projects.filter((p) => p.featured);
 
+  // Industries, counted from the published work — the sectors the projects were
+  // delivered for, replacing the old client-logo wall.
+  const byIndustry = new Map();
+  for (const p of STATE.projects) {
+    const name = industryOf(p);
+    if (!name) continue;
+    const k = name.toLowerCase();
+    if (!byIndustry.has(k)) byIndustry.set(k, { name, count: 0 });
+    byIndustry.get(k).count++;
+  }
+  const industries = [...byIndustry.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const industryTiles = industries
+    .map((it) => `
+      <a class="ind-tile" href="${escAttr(rootHref(BASE))}?industry=${encodeURIComponent(it.name)}">
+        <span class="ind-name">${esc(it.name)}</span>
+        <span class="ind-count">${it.count} ${it.count === 1 ? "project" : "projects"}</span>
+      </a>`)
+    .join("");
+
   transition(`
     <header class="work-hero">
       <span class="eyebrow">PORTFOLIO</span>
@@ -186,6 +206,10 @@ function viewLanding(initialQuery) {
     <div id="work-results"></div>
     <div id="work-cats">
       ${featured.length ? `<section class="cs-section"><div class="section-head"><h2>Featured</h2></div><div class="wp-grid">${featured.map(projectCard).join("")}</div></section>` : ""}
+      ${industries.length ? `<section class="cs-section">
+        <div class="section-head"><h2>Industries I Worked On</h2></div>
+        <div class="ind-grid">${industryTiles}</div>
+      </section>` : ""}
       <section class="cs-section">
         <div class="section-head"><h2>Categories</h2></div>
         ${cats.length ? `<div class="wc-grid">${catCards}</div>` : (STATE.projects.length
@@ -214,7 +238,7 @@ function viewLanding(initialQuery) {
 }
 
 function searchProject(p, q) {
-  const hay = [p.title, p.short_description, p.project_type, p.client_name, ...(p.tools || []), ...p.cats.map((c) => c.name)]
+  const hay = [p.title, p.short_description, p.project_type, industryOf(p), ...(p.tools || []), ...p.cats.map((c) => c.name)]
     .filter(Boolean).join(" ").toLowerCase();
   return hay.includes(q);
 }
@@ -276,36 +300,27 @@ function sortProjects(list, mode) {
   return list.sort((a, b) => d(b) - d(a)); // newest
 }
 
-// ── View: a client's work (all projects delivered for one client) ────────────
-function viewClient(clientName) {
-  const key = String(clientName).trim().toLowerCase();
+// ── View: one industry (all projects delivered in a single sector) ───────────
+function viewIndustry(industryName) {
+  const key = String(industryName).trim().toLowerCase();
   const list = sortProjects(
-    STATE.projects.filter((p) => (p.client_name || "").trim().toLowerCase() === key),
+    STATE.projects.filter((p) => industryOf(p).toLowerCase() === key),
     "newest"
   );
-  const title = list[0]?.client_name || String(clientName);
-  const logoUrl = list.find((p) => p.client_logo)?.client_logo || companyLogo(title);
-  const headLogo = logoUrl
-    ? `<img class="client-head-logo" src="${escAttr(logoUrl)}" alt="${escAttr(title)} logo"
-        data-fb="${escAttr(companyLogoFallback(title))}"
-        onerror="if(this.dataset.fb&&this.src!==this.dataset.fb){this.src=this.dataset.fb}else{this.remove()}" />`
-    : "";
+  const title = list.length ? industryOf(list[0]) : String(industryName);
 
   transition(`
     ${breadcrumb([{ label: "My Work", route: BASE }, { label: title }])}
     <header class="cat-head">
-      <div class="client-head-main">
-        ${headLogo}
-        <div>
-          <h1>${esc(title)}</h1>
-          <p>Projects I delivered for ${esc(title)}.</p>
-        </div>
+      <div>
+        <h1>${esc(title)}</h1>
+        <p>Projects I delivered in the ${esc(title)} industry.</p>
       </div>
       <span class="cat-count">${list.length} ${list.length === 1 ? "project" : "projects"}</span>
     </header>
     ${list.length
       ? `<div class="wp-grid">${list.map(projectCard).join("")}</div>`
-      : emptyState("No projects yet", "There are no published projects for this client yet.")}`);
+      : emptyState("No projects yet", "There are no published projects in this industry yet.")}`);
 }
 
 // ── View: project detail ────────────────────────────────────────────────────
@@ -318,7 +333,7 @@ function viewProject(catSlug, projSlug) {
   const meta = [
     p.project_date && ["Date", formatDate(p.project_date)],
     p.project_type && ["Type", p.project_type],
-    p.client_name && ["Client", p.client_name],
+    industryOf(p) && ["Industry", industryOf(p)],
     p.duration_text && ["Duration", p.duration_text],
     p.role && ["My role", p.role],
     p.project_state && ["Status", p.project_state.replace(/-/g, " ")],
@@ -339,7 +354,7 @@ function viewProject(catSlug, projSlug) {
   transition(`
     ${breadcrumb([{ label: "My Work", route: BASE }, { label: cat ? cat.name : "Project", route: cat ? `${BASE}/${cat.slug}` : null }, { label: p.title }])}
     <article class="project-detail">
-      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" />` : `<span class="art">${artworkFor(p.slug || p.title)}</span>`}</div>
+      <div class="pd-cover">${p.cover_image ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || p.title)}" />` : `<span class="art">${artworkFor(p)}</span>`}</div>
       <header class="pd-head">
         <div class="pd-cats">${p.cats.map((c) => `<a class="tag" data-route="${BASE}/${c.slug}" href="${escAttr(rootHref(`${BASE}/${c.slug}`))}">${esc(c.name)}</a>`).join("")}</div>
         <h1>${esc(p.title)}</h1>
