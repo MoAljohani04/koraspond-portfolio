@@ -5,11 +5,32 @@ import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import {
   esc, escAttr, safeUrl, initials, formatDate, icon, socialIconName, slugify, projectTitle,
+  techLogo, hasTechLogo,
 } from "./helpers.js";
 import { artwork, projectVisual } from "./artwork.js";
 import { initContactForm } from "./contact.js";
+import {
+  armMotion, initReveal, initPointerCards, initCounters, initScrollChrome,
+  initHeroParallax, initMarquee,
+} from "./motion.js";
 
 const $ = (id) => document.getElementById(id);
+
+// Arm the reveal styles before anything is rendered, so content that starts
+// off-screen is already hidden when it is first painted rather than blinking.
+armMotion();
+
+/**
+ * A logo image for a named tool, or "" when we have no certain logo for it —
+ * so a name like "Manual QA" quietly keeps its bullet instead of requesting an
+ * icon that does not exist. The `onerror` is the second line of defence, for a
+ * mark that is withdrawn from the CDN later.
+ */
+function logoImg(name, className = "") {
+  if (!hasTechLogo(name)) return "";
+  return `<img class="${className}" src="${escAttr(techLogo(name))}" alt="" loading="lazy" decoding="async"
+    onerror="this.closest('[data-logo-host]')?.classList.remove('has-logo');this.remove()" />`;
+}
 
 /** Load everything the page needs. Uses the database when configured,
  *  otherwise the built-in demo content. `includeDrafts` is honoured only for
@@ -88,6 +109,7 @@ function render(content, isAdmin) {
   renderNav(profile, isAdmin);
   renderHero(hero, profile, experiences, projects, courses, certificates, skills, isAdmin);
   renderWork(projects, projectCategories, projectCatMap, isAdmin);
+  renderToolkit(projects, skills);
   renderWorkedOn(experiences, isAdmin);
   renderExperience(experiences, isAdmin);
   renderSkills(skills, skillCategories, isAdmin);
@@ -97,6 +119,15 @@ function render(content, isAdmin) {
   renderFooter(profile, settings, socialLinks);
 
   initContactForm(contact);
+
+  // Everything above writes markup carrying [data-reveal] / [data-pointer];
+  // these wire the behaviour to it now that the DOM exists.
+  initReveal();
+  initPointerCards();
+  initCounters();
+  initScrollChrome();
+  initHeroParallax();
+  initMarquee($("tech-band"));
 }
 
 /* -- Nav ---------------------------------------------------------------- */
@@ -115,8 +146,16 @@ function renderNav(profile, isAdmin) {
 /* -- Hero --------------------------------------------------------------- */
 function renderHero(hero, profile, experiences, projects, courses, certificates, skills, isAdmin) {
   $("hero-eyebrow").textContent = hero.eyebrow || profile.headline_role || "";
+  // Each word gets its own span so the headline can deal itself in. `--w` is
+  // the word's place in the line; the CSS turns that into its delay.
+  let w = 0;
+  const words = (text, cls = "") =>
+    String(text || "")
+      .split(/\s+/).filter(Boolean)
+      .map((word) => `<span class="w${cls ? ` ${cls}` : ""}" style="--w:${w++}">${esc(word)}</span>`)
+      .join(" ");
   $("hero-headline").innerHTML =
-    `${esc(hero.headline)}${hero.highlighted_text ? ` <em class="hl">${esc(hero.highlighted_text)}</em>` : ""}`;
+    `${words(hero.headline)}${hero.highlighted_text ? ` <em class="hl">${words(hero.highlighted_text)}</em>` : ""}`;
   $("hero-desc").textContent = hero.description || profile.about || "";
 
   const actions = [];
@@ -167,7 +206,15 @@ function renderHero(hero, profile, experiences, projects, courses, certificates,
   const host = $("hero-stats");
   if (stats.length < 2) { host.hidden = true; return; }
   host.innerHTML = stats
-    .map((s) => `<div><p class="n">${esc(s.n)}</p><p class="l">${esc(s.l)}</p></div>`)
+    .map((s) => {
+      // A plain figure counts up when it scrolls into view; one that reads as
+      // words ("Six weeks") is printed as it is.
+      const num = /^\d+$/.test(s.n) ? s.n : null;
+      const n = num
+        ? `<p class="n" data-count="${escAttr(num)}">${esc(num)}</p>`
+        : `<p class="n">${esc(s.n)}</p>`;
+      return `<div data-reveal>${n}<p class="l">${esc(s.l)}</p></div>`;
+    })
     .join("");
 }
 
@@ -196,7 +243,8 @@ function renderWork(projects, categories, catMap, isAdmin) {
       const year = p.project_date ? new Date(p.project_date).getFullYear() : "";
       const meta = [cat ? cat.name : p.project_type, year].filter(Boolean).join(" — ");
       return `
-      <a class="pcard${i === 0 ? " wide" : ""}" href="${href}" aria-label="${escAttr(projectTitle(p.title))}">
+      <a class="pcard${i === 0 ? " wide" : ""}" href="${href}" aria-label="${escAttr(projectTitle(p.title))}"
+         data-reveal data-pointer>
         <span class="pcard-art">${projectVisual(p)}</span>
         <span class="pcard-veil"></span>
         <span class="pcard-index">${String(i + 1).padStart(2, "0")}</span>
@@ -216,6 +264,38 @@ function renderWork(projects, categories, catMap, isAdmin) {
   if (isAdmin) $("work-edit").innerHTML = editChip("admin.html#projects");
 }
 
+/* -- Toolkit marquee ----------------------------------------------------- */
+/**
+ * A scrolling band of every tool the published work actually used. Names come
+ * from the projects first (so the band mirrors the case studies), then from
+ * the skills list, and only names Simple Icons can illustrate are kept — a row
+ * of half-blank tiles would look broken rather than lively.
+ */
+function renderToolkit(projects, skills) {
+  const band = $("tech-band");
+  const track = $("tech-track");
+  if (!band || !track) return;
+
+  const seen = new Set();
+  const names = [];
+  const add = (name) => {
+    const key = String(name || "").trim().toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    names.push(String(name).trim());
+  };
+  projects.forEach((p) => (p.technologies || []).forEach((t) => add(typeof t === "string" ? t : t.name)));
+  skills.forEach((s) => add(s.name));
+
+  const items = names.filter(hasTechLogo).slice(0, 24);
+  if (items.length < 4) return;           // too few to read as a band
+
+  track.innerHTML = items
+    .map((n) => `<span class="marquee-item has-logo" data-logo-host>${logoImg(n)}${esc(n)}</span>`)
+    .join("");
+  band.hidden = false;
+}
+
 /* -- What I worked on --------------------------------------------------- */
 function renderWorkedOn(experiences, isAdmin) {
   const items = experiences.flatMap((e) => e.items || []);
@@ -224,7 +304,7 @@ function renderWorkedOn(experiences, isAdmin) {
   $("worked-grid").innerHTML = items
     .map(
       (it) => `
-      <article class="work-card">
+      <article class="work-card" data-reveal>
         <div class="work-ic">${icon(it.icon)}</div>
         <h3>${esc(it.title)}</h3>
         <p>${esc(it.description)}</p>
@@ -245,7 +325,7 @@ function renderExperience(experiences, isAdmin) {
           .filter(Boolean).join(" — ");
       const company = [e.company, e.department].filter(Boolean).join(" — ");
       return `
-      <div class="tl-item">
+      <div class="tl-item" data-reveal>
         ${date ? `<p class="tl-date">${esc(date)}</p>` : ""}
         <h3>${esc(e.role)}</h3>
         ${company ? `<p class="tl-company">${esc(company)}</p>` : ""}
@@ -285,9 +365,17 @@ function renderSkills(skills, categories, isAdmin) {
   host.innerHTML = groups
     .map(
       (g) => `
-      <div class="skill-col">
+      <div class="skill-col" data-reveal>
         <h3>${esc(g.name)}</h3>
-        <ul>${g.items.map((s) => `<li>${esc(s.name)}</li>`).join("")}</ul>
+        <ul>${g.items.map((s) => {
+          // A skill Simple Icons knows shows its real mark instead of the
+          // generic bullet; `has-logo` is dropped again if the image fails.
+          const logo = s.icon_url
+            ? `<img src="${escAttr(safeUrl(s.icon_url))}" alt="" loading="lazy" decoding="async"
+                 onerror="this.closest('[data-logo-host]')?.classList.remove('has-logo');this.remove()" />`
+            : logoImg(s.name);
+          return `<li${logo ? ' class="has-logo" data-logo-host' : ""}>${logo}${esc(s.name)}</li>`;
+        }).join("")}</ul>
       </div>`
     )
     .join("");
@@ -304,7 +392,7 @@ function renderCertificates(certificates, isAdmin) {
           : `<span>${esc((c.organization || c.title).slice(0, 12).toUpperCase())}</span>`;
         const link = c.verify_url || c.file_url;
         return `
-      <article class="cert-card">
+      <article class="cert-card" data-reveal>
         <div class="cert-thumb">${thumb}</div>
         <div>
           <h3>${esc(c.title)}</h3>
@@ -335,7 +423,7 @@ function renderCourses(courses, isAdmin) {
         ? `<img src="${escAttr(c.certificate_image)}" alt="${escAttr(c.certificate_alt || c.title)}" loading="lazy" />`
         : `<span>${esc((c.provider || c.title).slice(0, 12).toUpperCase())}</span>`;
       return `
-      <article class="cert-card">
+      <article class="cert-card" data-reveal>
         <a class="cert-thumb" href="${href}" aria-label="${escAttr(c.title)}">${thumb}</a>
         <div>
           <h3><a href="${href}">${esc(c.title)}</a></h3>

@@ -4,9 +4,12 @@
 // fallback so deep links work on any host.
 import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
-import { esc, escAttr, safeUrl, formatDate, icon, slugify, industryLabel, projectTitle } from "./helpers.js";
+import { esc, escAttr, safeUrl, formatDate, icon, slugify, industryLabel, projectTitle, techLogo, hasTechLogo } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
 import { artworkFor } from "./artwork.js";
+import { armMotion, initReveal, initPointerCards, initScrollChrome } from "./motion.js";
+
+armMotion();
 
 const BASE = "work";
 const app = () => document.getElementById("work-app");
@@ -112,6 +115,10 @@ function transition(html) {
   host.addEventListener("animationend", reveal, { once: true });
   setTimeout(reveal, 600);
   document.addEventListener("visibilitychange", reveal, { once: true });
+
+  // Each view writes fresh markup, so its cards need wiring again.
+  initReveal(host);
+  initPointerCards(host);
 }
 function breadcrumb(items) {
   return `<nav class="crumbs" aria-label="Breadcrumb">${items
@@ -120,6 +127,18 @@ function breadcrumb(items) {
       : `<span aria-current="page">${esc(it.label)}</span>`)
     .join('<span class="sep">/</span>')}</nav>`;
 }
+/**
+ * A tool chip carrying the tool's real logo when the slug map knows it. An
+ * unmapped name stays a plain chip rather than requesting an icon that does
+ * not exist; the `onerror` covers a mark withdrawn from the CDN later.
+ */
+function toolTag(name) {
+  if (!hasTechLogo(name)) return `<span class="tag">${esc(name)}</span>`;
+  return `<span class="tag has-logo" data-logo-host>
+    <img class="tag-logo" src="${escAttr(techLogo(name))}" alt="" loading="lazy" decoding="async"
+      onerror="this.closest('[data-logo-host]')?.classList.remove('has-logo');this.remove()" />${esc(name)}</span>`;
+}
+
 function projectCard(p) {
   const cat = p.cats[0];
   const route = cat ? `${BASE}/${cat.slug}/${p.slug}` : `${BASE}/all/${p.slug}`;
@@ -127,10 +146,10 @@ function projectCard(p) {
   const thumb = p.cover_image
     ? `<img src="${escAttr(p.cover_image)}" alt="${escAttr(p.cover_alt || projectTitle(p.title))}" loading="lazy" />`
     : `<span class="art">${artworkFor(p)}</span>`;
-  const tools = p.tools.slice(0, 4).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
+  const tools = p.tools.slice(0, 4).map(toolTag).join("");
   const industry = industryOf(p);
   return `
-    <article class="wp-card">
+    <article class="wp-card" data-reveal data-pointer>
       <a class="wp-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(projectTitle(p.title))}">${thumb}</a>
       <div class="wp-body">
         <div class="wp-meta">
@@ -159,7 +178,7 @@ function viewLanding(initialQuery) {
       ? `<img src="${escAttr(c.cover_image)}" alt="" loading="lazy" />`
       : `<span class="wc-ic">${icon(c.icon || "sparkles")}</span>`;
     return `
-      <a class="wc-card" data-route="${BASE}/${c.slug}" href="${escAttr(rootHref(`${BASE}/${c.slug}`))}">
+      <a class="wc-card" data-reveal data-pointer data-route="${BASE}/${c.slug}" href="${escAttr(rootHref(`${BASE}/${c.slug}`))}">
         <div class="wc-media">${media}</div>
         <div class="wc-info">
           <h3>${esc(c.name)}</h3>
@@ -184,7 +203,7 @@ function viewLanding(initialQuery) {
   const industries = [...byIndustry.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
   const industryTiles = industries
     .map((it) => `
-      <a class="ind-tile" href="${escAttr(rootHref(BASE))}?industry=${encodeURIComponent(it.name)}">
+      <a class="ind-tile" data-reveal href="${escAttr(rootHref(BASE))}?industry=${encodeURIComponent(it.name)}">
         <span class="ind-name">${esc(it.name)}</span>
         <span class="ind-count">${it.count} ${it.count === 1 ? "project" : "projects"}</span>
       </a>`)
@@ -366,7 +385,7 @@ function viewProject(catSlug, projSlug) {
 
       ${section("Overview", para(p.case_study || p.description))}
       ${section("Objectives", para(p.objectives))}
-      ${p.tools.length ? section("Tools & Technologies", `<div class="pd-tags">${p.tools.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>`) : ""}
+      ${p.tools.length ? section("Tools & Technologies", `<div class="pd-tags">${p.tools.map(toolTag).join("")}</div>`) : ""}
       ${section("Gallery", gallery)}
       ${section("Challenges & Solutions", para(p.challenges))}
       ${section("Final Outcome", para(p.outcome))}
@@ -412,6 +431,7 @@ async function main() {
   const bar = document.getElementById("preview-bar");
   if (STATE.previewDrafts && bar) { bar.className = "notice-bar"; bar.textContent = "Draft preview — you are seeing unpublished work."; }
   await initChrome("work");
+  initScrollChrome();
   await route();
 }
 main();

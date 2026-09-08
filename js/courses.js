@@ -6,6 +6,9 @@ import { getClient, getAdmin, isConfigured } from "./supabaseClient.js";
 import { FALLBACK } from "./fallback.js";
 import { esc, escAttr, safeUrl, formatDate, icon, slugify } from "./helpers.js";
 import { initChrome, ROOT, rootHref, parseRoute, pushRoute } from "./chrome.js";
+import { armMotion, initReveal, initPointerCards, initScrollChrome } from "./motion.js";
+
+armMotion();
 
 const BASE = "courses";
 const app = () => document.getElementById("courses-app");
@@ -89,6 +92,10 @@ function transition(html) {
   host.addEventListener("animationend", reveal, { once: true });
   setTimeout(reveal, 600);
   document.addEventListener("visibilitychange", reveal, { once: true });
+
+  // Each view writes fresh markup, so its cards need wiring again.
+  initReveal(host);
+  initPointerCards(host);
 }
 function breadcrumb(items) {
   return `<nav class="crumbs" aria-label="Breadcrumb">${items
@@ -104,7 +111,7 @@ function courseCard(c) {
     ? `<img src="${escAttr(c.certificate_image)}" alt="${escAttr(c.certificate_alt || c.title)}" loading="lazy" />`
     : `<span>${esc((c.provider || c.title).toUpperCase())}</span>`;
   return `
-    <article class="course-card">
+    <article class="course-card" data-reveal data-pointer>
       <a class="cc-thumb" data-route="${route}" href="${escAttr(rootHref(route))}" aria-label="${escAttr(c.title)}">${thumb}</a>
       <div class="cc-body">
         <div class="wp-meta">
@@ -325,6 +332,7 @@ async function main() {
   const bar = document.getElementById("preview-bar");
   if (STATE.previewDrafts && bar) { bar.className = "notice-bar"; bar.textContent = "Draft preview — you are seeing unpublished courses."; }
   await initChrome("courses");
+  initScrollChrome();
   await route();
 }
 main();

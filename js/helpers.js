@@ -140,6 +140,8 @@ const TECH_LOGO_SLUGS = {
   figma: "figma", framer: "framer", sketch: "sketch", invision: "invision", blender: "blender",
   // AI
   claude: "claude", "claude ai": "claude", anthropic: "anthropic",
+  // Simple Icons files ChatGPT under the OpenAI mark.
+  chatgpt: "openai", "chat gpt": "openai", openai: "openai", gpt: "openai",
   gemini: "googlegemini", "google gemini": "googlegemini", huggingface: "huggingface",
   tensorflow: "tensorflow", pytorch: "pytorch", opencv: "opencv",
   // Markup / languages
@@ -198,6 +200,16 @@ export function techLogo(name) {
   if (TECH_LOGO_SLUGS[key]) return `https://cdn.simpleicons.org/${TECH_LOGO_SLUGS[key]}`;
   const slug = key.normalize("NFKD").replace(/[^a-z0-9]/g, "");
   return slug ? `https://cdn.simpleicons.org/${slug}` : "";
+}
+
+/**
+ * True only for a name the slug map knows, so its logo is certain to exist.
+ * `techLogo` will happily guess a URL for anything, which is fine where a
+ * failed image just leaves plain text — but a row built *of* logos should
+ * contain only the certain ones, or half of it renders as gaps.
+ */
+export function hasTechLogo(name) {
+  return Boolean(TECH_LOGO_SLUGS[String(name || "").trim().toLowerCase()]);
 }
 
 

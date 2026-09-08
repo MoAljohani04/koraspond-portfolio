@@ -778,6 +778,235 @@ em.hl, .grad { font-style: italic; color: var(--accent); }
 .view-in { animation: fade-up .4s ease both; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* -- Reveal on scroll ----------------------------------------------------
+   Guarded by `.js-motion`, which js/motion.js adds only when the browser can
+   observe intersections and the visitor has not asked for reduced motion. No
+   class, no hidden content — the page is complete without any of this. */
+.js-motion [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity .6s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0ms),
+    transform .6s cubic-bezier(.22, .61, .36, 1) var(--reveal-delay, 0ms);
+}
+.js-motion [data-reveal].is-in { opacity: 1; transform: none; }
+/* Headline words deal in one after another on first paint. */
+.js-motion .hero h1 .w {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(22px);
+  animation: word-in .7s cubic-bezier(.22, .61, .36, 1) both;
+  animation-delay: calc(var(--w) * 55ms + 120ms);
+}
+@keyframes word-in { to { opacity: 1; transform: none; } }
+
+/* -- Pointer-tracked cards -----------------------------------------------
+   `--mx/--my` follow the cursor; `--rx/--ry` tilt the card towards it. Both
+   are written by js/motion.js and default to a flat, centred card. */
+[data-pointer] {
+  --mx: 50%; --my: 50%; --rx: 0deg; --ry: 0deg;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform .45s cubic-bezier(.22, .61, .36, 1), border-color .25s;
+}
+[data-pointer]::after {
+  content: ""; position: absolute; inset: 0; z-index: 2;
+  pointer-events: none; opacity: 0; transition: opacity .3s;
+  background: radial-gradient(320px circle at var(--mx) var(--my),
+    rgba(87, 162, 255, .16), transparent 70%);
+}
+[data-pointer]:hover::after, [data-pointer]:focus-within::after { opacity: 1; }
+.pcard[data-pointer]:hover, .wp-card[data-pointer]:hover { border-color: var(--accent); }
+/* Text sits above the light, so the glow lifts the artwork and never washes
+   over the words. */
+.pcard-body { z-index: 3; }
+.wp-body, .wc-info, .cc-body { position: relative; z-index: 3; }
+
+/* -- Navigation chrome ---------------------------------------------------- */
+.navbar { transition: background .3s, box-shadow .3s; }
+.navbar.scrolled {
+  background: linear-gradient(to bottom, rgba(1, 2, 3, .97) 0%, rgba(1, 2, 3, .82) 100%);
+  box-shadow: 0 1px 0 var(--line);
+}
+.nav-progress {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: linear-gradient(to right, var(--accent), var(--accent-light));
+  transform: scaleX(0); transform-origin: 0 50%;
+}
+/* The active section's link keeps a rule under it. */
+.nav-links a { position: relative; padding-bottom: 4px; }
+.nav-links a::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 1px; width: 100%;
+  background: var(--accent); transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform .3s cubic-bezier(.22, .61, .36, 1);
+}
+.nav-links a:hover::after, .nav-links a.active::after { transform: scaleX(1); }
+
+/* -- Hero atmosphere ------------------------------------------------------
+   Two very low-opacity accent fields drifting behind the headline, plus the
+   hairline grid. Painted on a pseudo-element so nothing in the hero has to
+   composite differently. */
+.hero::before {
+  content: ""; position: absolute; inset: -20% -10% auto -10%; height: 120%;
+  pointer-events: none; z-index: 0; opacity: .55;
+  background:
+    radial-gradient(38rem 26rem at 18% 12%, rgba(87, 162, 255, .13), transparent 70%),
+    radial-gradient(30rem 30rem at 82% 68%, rgba(139, 195, 255, .09), transparent 72%),
+    linear-gradient(rgba(65, 71, 65, .16) 1px, transparent 1px) 0 0 / 100% 88px,
+    linear-gradient(90deg, rgba(65, 71, 65, .16) 1px, transparent 1px) 0 0 / 88px 100%;
+  animation: hero-drift 22s ease-in-out infinite alternate;
+}
+@keyframes hero-drift {
+  from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+  to   { transform: translate3d(2%, 2%, 0) scale(1.06); }
+}
+.hero-grid, .hero-stats { position: relative; z-index: 1; }
+/* The art panel drifts against the pointer (see initHeroParallax). */
+.hero-art-frame {
+  --px: 0px; --py: 0px;
+  transform: translate3d(var(--px), var(--py), 0);
+  transition: transform .5s cubic-bezier(.22, .61, .36, 1), border-color .3s;
+}
+.hero-art:hover .hero-art-frame { border-color: var(--accent); }
+.hero-art-tag { transition: transform .4s cubic-bezier(.34, 1.56, .64, 1); }
+.hero-art:hover .hero-art-tag { transform: scale(1.08) rotate(-3deg); }
+
+/* Scroll cue at the foot of the hero */
+.scroll-cue {
+  position: absolute; left: 50%; bottom: 18px; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono); font-size: 10px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--muted);
+}
+.scroll-cue i {
+  display: block; width: 1px; height: 40px;
+  background: linear-gradient(to bottom, var(--accent), transparent);
+  animation: cue 2.4s ease-in-out infinite;
+  transform-origin: 50% 0;
+}
+@keyframes cue {
+  0%, 100% { transform: scaleY(.35); opacity: .35; }
+  50%      { transform: scaleY(1); opacity: 1; }
+}
+
+/* -- Living diagrams ------------------------------------------------------
+   The generated artwork draws itself in the first time a card is seen, then
+   keeps one slow pulse on the accent element so the tile is never quite
+   still. Classes are emitted by js/artwork.js. */
+.art .a-draw {
+  stroke-dasharray: var(--len, 420);
+  stroke-dashoffset: var(--len, 420);
+  animation: draw 1.5s cubic-bezier(.5, 0, .2, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.art .a-pop {
+  opacity: 0; transform-box: fill-box; transform-origin: center;
+  animation: pop .45s cubic-bezier(.34, 1.56, .64, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 55ms + 260ms);
+}
+@keyframes pop { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: none; } }
+/* The gauge arc carries its own dash pattern, so only the offset is animated. */
+.art .a-gauge {
+  stroke-dashoffset: var(--len, 420);
+  animation: draw 1.6s cubic-bezier(.5, 0, .2, 1) .2s forwards;
+}
+.art .a-grow {
+  transform: scaleX(0); transform-box: view-box;
+  animation: grow .7s cubic-bezier(.22, .61, .36, 1) forwards;
+  animation-delay: calc(var(--i, 0) * 90ms + 300ms);
+}
+@keyframes grow { to { transform: scaleX(1); } }
+.art .a-pulse {
+  transform-box: fill-box; transform-origin: center;
+  animation: pulse 3.2s ease-in-out infinite;
+}
+.art .a-glow { animation: pop .45s cubic-bezier(.34, 1.56, .64, 1) forwards, glow 2.8s ease-in-out 1.2s infinite; }
+@keyframes glow {
+  0%, 100% { stroke-width: 1; opacity: .8; }
+  50%      { stroke-width: 2.2; opacity: 1; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: .35; transform: scale(.94); }
+  50%      { opacity: 1; transform: scale(1.06); }
+}
+/* Diagrams only animate once their card is on screen. */
+.js-motion [data-reveal]:not(.is-in) .art * { animation-play-state: paused; }
+
+/* -- Marquee band ---------------------------------------------------------
+   The toolkit, scrolling. Two identical tracks side by side and a translate
+   of exactly one track width, so the loop has no seam. */
+.marquee-band {
+  --marquee-duration: 32s;
+  position: relative; overflow: hidden;
+  padding: 22px 0;
+  background: var(--ground-2);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  display: flex; width: 100%;
+  /* Fade the ends into the ground rather than cutting the row off. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex; align-items: center; gap: 48px;
+  flex: none; padding-right: 48px; white-space: nowrap;
+}
+.marquee-band.running .marquee-track { animation: marquee var(--marquee-duration) linear infinite; }
+.marquee-band.running:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee { to { transform: translateX(-100%); } }
+.marquee-item {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  transition: color .25s;
+}
+.marquee-band:hover .marquee-item { color: var(--text); }
+.marquee-item img {
+  width: 20px; height: 20px; object-fit: contain;
+  filter: grayscale(1) brightness(1.7); opacity: .7;
+  transition: filter .25s, opacity .25s, transform .25s;
+}
+.marquee-item:hover img { filter: none; opacity: 1; transform: scale(1.15); }
+
+/* -- Logos in lists ------------------------------------------------------- */
+.skill-col li { transition: color .2s, transform .2s; }
+.skill-col li:hover { color: var(--text); transform: translateX(4px); }
+/* A skill with a real logo drops the generic bullet. */
+.skill-col li.has-logo::before { display: none; }
+.skill-logo, .skill-col li img, .tag-logo {
+  filter: grayscale(1) brightness(1.7); opacity: .75;
+  transition: filter .25s, opacity .25s;
+}
+.skill-col li:hover img, .tag.has-logo:hover .tag-logo { filter: none; opacity: 1; }
+.tag.has-logo { display: inline-flex; align-items: center; gap: 8px; }
+.tag-logo { width: 14px; height: 14px; object-fit: contain; }
+
+/* -- Card and tile polish ------------------------------------------------- */
+.work-card, .ind-tile, .wc-card, .cert-card { transition: background .25s, transform .25s, border-color .25s; }
+.work-card:hover, .ind-tile:hover { transform: translateY(-3px); }
+.work-ic { transition: transform .35s cubic-bezier(.34, 1.56, .64, 1); }
+.work-card:hover .work-ic { transform: translateY(-2px) scale(1.12); }
+.wc-card:hover .wc-media img, .wp-card:hover .wp-thumb img { transform: scale(1.06); }
+.wc-media img, .wp-thumb img { transition: transform .6s cubic-bezier(.22, .61, .36, 1); }
+.cert-thumb img { transition: transform .5s cubic-bezier(.22, .61, .36, 1); }
+.cert-card:hover .cert-thumb img { transform: scale(1.08); }
+.ind-tile { position: relative; overflow: hidden; }
+.ind-tile::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--accent); transform: scaleY(0); transform-origin: 50% 100%;
+  transition: transform .3s cubic-bezier(.22, .61, .36, 1);
+}
+.ind-tile:hover::before { transform: scaleY(1); }
+/* The timeline dot fills as its entry arrives. */
+.js-motion .tl-item[data-reveal]::before { transform: scale(0); transition: transform .45s cubic-bezier(.34, 1.56, .64, 1) var(--reveal-delay, 0ms); }
+.js-motion .tl-item[data-reveal].is-in::before { transform: scale(1); }
+.btn { transition: opacity .2s, background .2s, border-color .2s, color .2s, transform .2s; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); }
+.btn svg { transition: transform .25s; }
+.btn:hover svg { transform: translateX(3px); }
+.social-link { transition: color .2s, transform .25s; }
+.social-link:hover { transform: translateY(-3px); }
+
 @media (max-width: 1024px) {
   .hero-grid { grid-template-columns: 1fr; }
   .hero-art { max-width: 420px; margin-top: 32px; }

@@ -15,7 +15,7 @@
       href="https://fonts.googleapis.com/css2?family=Encode+Sans:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;1,300&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css?v=10" />
+    <link rel="stylesheet" href="css/styles.css?v=11" />
   </head>
   <body>
     <!-- First-load overlay: hides the empty shell while content is fetched, so
@@ -94,6 +94,8 @@
         </div>
 
         <div class="hero-stats" id="hero-stats"></div>
+
+        <div class="scroll-cue" aria-hidden="true">Scroll<i></i></div>
       </section>
 
       <!-- Selected work -->
@@ -112,6 +114,11 @@
           </div>
         </div>
       </section>
+
+      <!-- The toolkit, scrolling -->
+      <div class="marquee-band" id="tech-band" role="img" aria-label="Tools and technologies used across these projects" hidden>
+        <div class="marquee-track" id="tech-track"></div>
+      </div>
 
       <!-- What I worked on -->
       <section class="section section-light" id="worked-on" hidden>
@@ -221,6 +228,6 @@
       </div>
     </footer>
 
-    <script type="module" src="js/site.js?v=10"></script>
+    <script type="module" src="js/site.js?v=11"></script>
   </body>
 </html>

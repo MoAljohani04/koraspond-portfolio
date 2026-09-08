@@ -14,6 +14,16 @@ const FILL = "var(--ground-3)";
 const wrap = (children, vb = "0 0 400 300") =>
   `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${children}</svg>`;
 
+// Animation hooks. css/styles.css turns these into a diagram that draws itself
+// the first time its card is seen: `a-draw` traces a stroke, `a-pop` deals an
+// element in, `a-pulse` keeps one accent element breathing. `--i` staggers the
+// order, `--len` is the stroke length a trace has to cover. Under reduced
+// motion the CSS never engages and the finished diagram is simply drawn.
+const anim = (cls, i = 0, len = 0) =>
+  `class="${cls}" style="--i:${i}${len ? `;--len:${Math.ceil(len)}` : ""}"`;
+
+const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+
 /* -- crawl: pages discovered, links traced, a few flagged ----------------- */
 function crawl() {
   const nodes = [
@@ -26,16 +36,17 @@ function crawl() {
   ];
   const flagged = [3, 6, 9];
   const lines = edges
-    .map(([a, b]) =>
-      `<line x1="${nodes[a][0]}" y1="${nodes[a][1]}" x2="${nodes[b][0]}" y2="${nodes[b][1]}" stroke="${LINE}" stroke-width="1"/>`)
+    .map(([a, b], i) =>
+      `<line x1="${nodes[a][0]}" y1="${nodes[a][1]}" x2="${nodes[b][0]}" y2="${nodes[b][1]}" stroke="${LINE}" stroke-width="1"
+        ${anim("a-draw", i, dist(...nodes[a], ...nodes[b]))}/>`)
     .join("");
   const dots = nodes
     .map(([x, y], i) => {
       const bad = flagged.includes(i);
       const halo = i === 0
-        ? `<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="${ACCENT}" stroke-width="1" opacity="0.35"/>`
+        ? `<circle cx="${x}" cy="${y}" r="16" fill="none" stroke="${ACCENT}" stroke-width="1" opacity="0.35" ${anim("a-pulse")}/>`
         : "";
-      return `<g>${halo}
+      return `<g ${anim("a-pop", i)}>${halo}
         <rect x="${x - 9}" y="${y - 7}" width="18" height="14"
           fill="${bad ? "none" : FILL}" stroke="${bad ? ACCENT : DIM}" stroke-width="1"
           ${bad ? 'stroke-dasharray="2 2"' : ""}/>
@@ -58,18 +69,20 @@ function score() {
   const gauge = `
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${LINE}" stroke-width="10"/>
     <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${ACCENT}" stroke-width="10"
-      stroke-dasharray="${(C * 0.78).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${CX} ${CY})"/>
+      stroke-dasharray="${(C * 0.78).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${CX} ${CY})"
+      ${anim("a-gauge", 0, C)}/>
     <text x="${CX}" y="${CY + 4}" text-anchor="middle" fill="var(--text)"
-      style="font:700 40px var(--font-display)">78</text>
+      style="font:700 40px var(--font-display)" ${anim("a-pop", 6)}>78</text>
     <text x="${CX}" y="${CY + 24}" text-anchor="middle" fill="${DIM}"
       style="font:400 9px var(--font-mono);letter-spacing:2px">HEALTH</text>`;
   const rows = bars
     .map((b, i) => {
       const y = 78 + i * 30;
-      return `<g>
+      return `<g ${anim("a-pop", i)}>
         <text x="212" y="${y + 4}" fill="${DIM}" style="font:400 9px var(--font-mono);letter-spacing:1px">${b.label}</text>
         <rect x="258" y="${y - 5}" width="110" height="8" fill="none" stroke="${LINE}" stroke-width="1"/>
-        <rect x="258" y="${y - 5}" width="${(110 * b.w) / 30}" height="8" fill="${ACCENT}" opacity="0.85"/>
+        <rect x="258" y="${y - 5}" width="${(110 * b.w) / 30}" height="8" fill="${ACCENT}" opacity="0.85"
+          class="a-grow" style="--i:${i};transform-origin:258px ${y - 1}px"/>
         <text x="374" y="${y + 4}" fill="${DIM}" style="font:400 9px var(--font-mono)">${b.w}</text>
       </g>`;
     })
@@ -89,7 +102,7 @@ function pages() {
       .map((k) =>
         `<line x1="${x + 6}" y1="${y + 44 + k * 6}" x2="${rtl ? x + 36 : x + (k === 2 ? 46 : 66)}" y2="${y + 44 + k * 6}" stroke="${DIM}" stroke-width="1" opacity="0.45"/>`)
       .join("");
-    out += `<g>
+    out += `<g ${anim("a-pop", i)}>
       <rect x="${x}" y="${y}" width="72" height="62" fill="${FILL}" stroke="${isHome ? ACCENT : LINE}" stroke-width="1"/>
       <rect x="${x}" y="${y}" width="72" height="10" fill="${isHome ? ACCENT : LINE}" opacity="${isHome ? 0.8 : 0.5}"/>
       <rect x="${rtl ? x + 40 : x + 6}" y="${y + 18}" width="26" height="18" fill="${LINE}" opacity="0.55"/>
@@ -124,7 +137,7 @@ function bilingual() {
         ${flag}
       </g>`;
     }
-    out += `<g>
+    out += `<g ${anim("a-pop", c * 2)}>
       <text x="${x}" y="40" fill="${c === 1 ? ACCENT : DIM}" style="font:400 10px var(--font-mono);letter-spacing:3px">${lang}</text>
       <rect x="${x}" y="52" width="142" height="212" fill="${FILL}" stroke="${LINE}" stroke-width="1"/>
       ${rows}
@@ -158,7 +171,7 @@ function sheet() {
       </g>`;
       x += w;
     });
-    out += `<g>${cells}${gap ? `<circle cx="378" cy="${y + 12}" r="3" fill="${ACCENT}"/>` : ""}</g>`;
+    out += `<g ${anim("a-pop", r)}>${cells}${gap ? `<circle cx="378" cy="${y + 12}" r="3" fill="${ACCENT}" class="a-pulse"/>` : ""}</g>`;
   }
   return wrap(out);
 }
@@ -176,9 +189,9 @@ function chat() {
   ];
   let y = 74;
   const thread = bubbles
-    .map((b) => {
+    .map((b, i) => {
       const x = b.out ? 148 - b.w : 32;
-      const g = `<g>
+      const g = `<g ${anim("a-pop", i * 1.6)}>
         <rect x="${x}" y="${y}" width="${b.w}" height="${b.h}" rx="6"
           fill="${b.out ? ACCENT : FILL}" opacity="${b.out ? 0.85 : 1}"
           stroke="${b.out ? ACCENT : LINE}" stroke-width="1"/>
@@ -200,16 +213,18 @@ function chat() {
   // Intent tree: one bot node fanning out to the replies it can resolve.
   const leaves = [[300, 118], [300, 168], [300, 218]];
   const edges = leaves
-    .map(([x, cy]) => `<path d="M254 168 C 272 168, 272 ${cy}, ${x - 4} ${cy}" fill="none" stroke="${LINE}" stroke-width="1"/>`)
+    .map(([x, cy], i) => `<path d="M254 168 C 272 168, 272 ${cy}, ${x - 4} ${cy}" fill="none" stroke="${LINE}" stroke-width="1"
+      ${anim("a-draw", 6 + i, 120)}/>`)
     .join("");
   const boxes = leaves
-    .map(([x, cy], i) => `<g>
+    .map(([x, cy], i) => `<g ${anim("a-pop", 8 + i)}>
       <rect x="${x}" y="${cy - 13}" width="72" height="26" fill="${FILL}" stroke="${i === 0 ? ACCENT : LINE}" stroke-width="1"/>
       <line x1="${x + 9}" y1="${cy - 3}" x2="${x + 52}" y2="${cy - 3}" stroke="${DIM}" stroke-width="1" opacity="0.5"/>
       <line x1="${x + 9}" y1="${cy + 4}" x2="${x + 38}" y2="${cy + 4}" stroke="${DIM}" stroke-width="1" opacity="0.35"/>
     </g>`)
     .join("");
   const bot = `
+    <circle cx="228" cy="168" r="33" fill="none" stroke="${ACCENT}" stroke-width="1" opacity="0.3" ${anim("a-pulse")}/>
     <circle cx="228" cy="168" r="26" fill="none" stroke="${ACCENT}" stroke-width="1.5"/>
     <rect x="216" y="160" width="24" height="17" rx="4" fill="none" stroke="${ACCENT}" stroke-width="1"/>
     <circle cx="222.5" cy="168.5" r="1.8" fill="${ACCENT}"/>
@@ -227,7 +242,7 @@ function doc() {
   for (let r = 0; r < 7; r++) {
     const y = 62 + r * 30;
     const answered = r !== 4;
-    rows += `<g>
+    rows += `<g ${anim("a-pop", r)}>
       <text x="26" y="${y + 4}" fill="${DIM}" style="font:400 9px var(--font-mono)">${String(r + 1).padStart(2, "0")}</text>
       <line x1="50" y1="${y}" x2="${150 - (r % 3) * 14}" y2="${y}" stroke="${DIM}" stroke-width="1" opacity="0.45"/>
       <line x1="178" y1="${y}" x2="196" y2="${y}" stroke="${LINE}" stroke-width="1" stroke-dasharray="2 3"/>
@@ -254,18 +269,21 @@ function neural() {
     { x: 304, ys: [122, 174] },
   ];
   let edges = "";
+  let e = 0;
   for (let l = 0; l < layers.length - 1; l++) {
     for (const y1 of layers[l].ys) {
       for (const y2 of layers[l + 1].ys) {
         edges += `<line x1="${layers[l].x}" y1="${y1}" x2="${layers[l + 1].x}" y2="${y2}"
-          stroke="${LINE}" stroke-width="1" opacity="0.5"/>`;
+          stroke="${LINE}" stroke-width="1" opacity="0.5"
+          ${anim("a-draw", l * 3 + (e++ % 4), dist(layers[l].x, y1, layers[l + 1].x, y2))}/>`;
       }
     }
   }
   const dots = layers
     .map((L, l) => L.ys
-      .map((y) => `<circle cx="${L.x}" cy="${y}" r="7" fill="${FILL}"
-        stroke="${l === layers.length - 1 ? ACCENT : DIM}" stroke-width="1"/>`)
+      .map((y, i) => `<circle cx="${L.x}" cy="${y}" r="7" fill="${FILL}"
+        stroke="${l === layers.length - 1 ? ACCENT : DIM}" stroke-width="1"
+        ${anim(l === layers.length - 1 ? "a-pop a-glow" : "a-pop", l * 3 + i)}/>`)
       .join(""))
     .join("");
   const io = `
